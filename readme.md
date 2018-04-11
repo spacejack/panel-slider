@@ -15,7 +15,7 @@ const slider = PanelSlider({
 	// Number of equal-sized panels
 	numPanels: 3,
 	// Starting panel
-	initialPanel?: 0
+	initialPanel: 0
 })
 ```
 
@@ -28,7 +28,7 @@ interface PanelSliderOptions {
 	/** Number of panels the root element is divided into */
 	numPanels: number
 	/** Starting panel */
-	initialPanel: number
+	initialPanel?: number
 	/** Duration of slide animation (default 500ms) */
 	slideDuration?: number
 	/** Horizontal drag distance threshold (default 12px) */
