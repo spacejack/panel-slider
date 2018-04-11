@@ -40,3 +40,16 @@ html, body {
 .pbr {
 	white-space: pre-line;
 }
+
+.stats {
+	font-size: 0.8em;
+	font-family: monospace;
+	color: #666;
+	position: absolute;
+	top: 0.25em;
+	right: 1.5em;
+}
+
+.stats table {
+	background-color: rgba(0,0,0,0.075);
+}
