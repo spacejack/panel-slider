@@ -61,5 +61,15 @@ interface PanelSlider {
 	/** Destroy & cleanup resources */
 	destroy(): void
 }
+```
 
+## Drag object provided to drag callbacks
+
+```typescript
+export interface Drag {
+	/** Horizontal amount dragged from start (in pixels) */
+	x: number
+	/** Current horizontal velocity */
+	v: number
+}
 ```
