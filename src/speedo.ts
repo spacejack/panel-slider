@@ -3,8 +3,8 @@ import {pmod} from './math'
 const DEFAULT_SAMPLES = 4
 
 export interface Speedo {
-	start: (x: number, t?: number) => void
-	addSample: (x: number, t?: number) => void
+	start: (x: number, t: number) => void
+	addSample: (x: number, t: number) => void
 	getVel: () => number
 }
 

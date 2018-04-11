@@ -30,7 +30,6 @@ export interface Options {
 	el: HTMLElement
 	numPanels: number
 	initialPanel: number
-	scrollables?: Node[]
 	slideDuration?: number
 	dragThreshold?: number
 	ratioThreshold?: number
@@ -40,7 +39,7 @@ export interface Options {
  * Drags an element horizontally between sections.
  */
 export default function createPanelSlider ({
-	el, numPanels, initialPanel, scrollables,
+	el, numPanels, initialPanel,
 	slideDuration = DEFAULT_SLIDE_DURATION,
 	dragThreshold = DEFAULT_DRAG_THRESHOLD,
 	ratioThreshold = DEFAULT_RATIO_THRESHOLD
@@ -56,92 +55,83 @@ export default function createPanelSlider ({
 	let isAnimating = false
 	let isScrolling = false
 
-	;(function init() {
-		onResize()
+	onResize()
 
-		// Setup touch listeners
-		el.addEventListener('touchstart', onTouchStart)
-		el.addEventListener('touchmove', onTouchMove)
-		el.addEventListener('touchend', onTouchEnd)
+	// Setup touch listeners
+	el.addEventListener('touchstart', onTouchStart)
+	el.addEventListener('touchmove', onTouchMove)
+	el.addEventListener('touchend', onTouchEnd)
 
-		// Setup scroll listeners
-		if (scrollables) {
-			scrollables.forEach(scroller => {
-				scroller.addEventListener('scroll', onScrollerScroll)
-				scroller.addEventListener('touchmove', onScrollerMove)
-			})
-		}
+	// Scroll listener for scrollable child elements
+	el.addEventListener('scroll', onScroll, true)
 
-		// Resize listener
-		window.addEventListener('resize', onResize)
-	}())
+	// Resize listener
+	window.addEventListener('resize', onResize)
 
 	// Event handlers
 	function onTouchStart (e: TouchEvent) {
 		const touch = e.changedTouches[0]
-		onPress(touch)
+		onPress(touch.clientX, touch.clientY)
 	}
 
 	function onTouchMove (e: TouchEvent) {
 		const touch = e.changedTouches[0]
-		onMove(touch)
+		onMove(touch.clientX, touch.clientY, e)
 	}
 
 	function onTouchEnd (e: TouchEvent) {
 		const touch = e.changedTouches[0]
-		onRelease(touch)
+		onRelease(touch.clientX, touch.clientY)
 	}
 
-	function onScrollerScroll (e: UIEvent) {
+	function onScroll (e: UIEvent) {
 		if (isDragging) return
 		isScrolling = true
 		isPressed = false
 		isDragging = false
 	}
 
-	function onScrollerMove (e: TouchEvent) {
-		if (isDragging) e.preventDefault()
+	function onPress (x: number, y: number) {
+		isDragging = false
+		isPressed = true
+		isScrolling = false
+		pressStart.x = x
+		pressStart.y = y
+	}
+
+	function onMove (x: number, y: number, e: Event) {
+		if (!isPressed) return
+		if (isDragging) {
+			e.preventDefault()
+			drag(x, y)
+		} else if (!isScrolling) {
+			tryStartDrag(x, y, e)
+		}
+	}
+
+	function onRelease (x: number, y: number) {
+		isPressed = false
+		if (!isDragging) return
+		isDragging = false
+		endDrag(x, y)
 	}
 
 	// Drag functions
 
-	function tryStartDrag (touch: Touch) {
+	function tryStartDrag (x: number, y: number, e: Event) {
 		speedo.start(0, Date.now() / 1000)
-		const dx = touch.clientX - pressStart.x
-		const dy = touch.clientY - pressStart.y
+		const dx = x - pressStart.x
+		const dy = y - pressStart.y
 		const ratio = dy !== 0 ? Math.abs(dx / dy) : 100000.0
 		if (Math.abs(dx) > dragThreshold && ratio > ratioThreshold) {
 			isDragging = true
+			e.preventDefault()
 			callbacks.dragstart && callbacks.dragstart(dx)
 		}
 	}
 
-	function onPress (touch: Touch) {
-		isDragging = false
-		isPressed = true
-		isScrolling = false
-		pressStart.x = touch.clientX
-		pressStart.y = touch.clientY
-	}
-
-	function onMove (touch: Touch) {
-		if (!isPressed) return
-		if (isDragging) {
-			drag(touch)
-			return
-		}
-		if (!isScrolling) tryStartDrag(touch)
-	}
-
-	function onRelease (touch: Touch) {
-		isPressed = false
-		if (!isDragging) return
-		isDragging = false
-		endDrag(touch)
-	}
-
-	function drag (touch: Touch) {
-		const dx = touch.clientX - pressStart.x
+	function drag (x: number, y: number) {
+		const dx = x - pressStart.x
 		speedo.addSample(dx, Date.now() / 1000)
 		const ox = -curPanel * size.panelWidth
 		curPosX = Math.round(clamp(ox + dx, -(size.fullWidth - size.panelWidth), 0))
@@ -149,8 +139,8 @@ export default function createPanelSlider ({
 		callbacks.drag && callbacks.drag(dx, speedo.getVel())
 	}
 
-	function endDrag (touch: Touch) {
-		const dx = touch.clientX - pressStart.x
+	function endDrag (x: number, y: number) {
+		const dx = x - pressStart.x
 		speedo.addSample(dx, Date.now() / 1000)
 		const ox = -curPanel * size.panelWidth
 		curPosX = Math.round(clamp(ox + dx, -(size.fullWidth - size.panelWidth), 0))
@@ -244,22 +234,16 @@ export default function createPanelSlider ({
 	/** Remove all event handlers, cleanup streams etc. */
 	function destroy() {
 		// Remove event listeners
-		if (scrollables) {
-			scrollables.forEach(scroller => {
-				scroller.removeEventListener('scroll', onScrollerScroll)
-				scroller.removeEventListener('touchmove', onScrollerMove)
-			})
-		}
+		window.removeEventListener('resize', onResize)
+		el.removeEventListener('scroll', onScroll, true)
 		el.removeEventListener('touchstart', onTouchStart)
 		el.removeEventListener('touchmove', onTouchMove)
 		el.removeEventListener('touchend', onTouchEnd)
-		window.removeEventListener('resize', onResize)
 		callbacks.dragstart = undefined
 		callbacks.drag = undefined
 		callbacks.dragend = undefined
 		callbacks.change = undefined
 		el = null as any
-		scrollables = undefined
 	}
 
 	return {
