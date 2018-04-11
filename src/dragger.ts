@@ -18,6 +18,10 @@ export interface DraggerOptions {
 	ondragend?(dx: number, dvx: number): void
 	/** Fires if drag was started then cancelled */
 	ondragcancel?(): void
+	/** Fires when input device pressed */
+	ondevicepress?(e: MouseEvent | TouchEvent): void
+	/** Fires when input device released */
+	ondevicerelease?(e: MouseEvent | TouchEvent): void
 	/** Specify drag threshold distance */
 	dragThreshold?: number
 	/** Specifiy minimum drag ratio */
@@ -35,6 +39,7 @@ function Dragger (
 	el: HTMLElement,
 	{
 		ondragstart, ondragmove, ondragend, ondragcancel,
+		ondevicepress, ondevicerelease,
 		dragThreshold = DEFAULT_DRAG_THRESHOLD,
 		dragRatio = DEFAULT_DRAG_RATIO,
 		maxLeft, maxRight
@@ -58,7 +63,7 @@ function Dragger (
 		device = MOUSE
 		window.addEventListener('mousemove', onMouseMove)
 		window.addEventListener('mouseup', onMouseUp)
-		onPress(e.clientX, e.clientY)
+		onPress(e.clientX, e.clientY, e)
 	}
 	function onMouseMove (e: MouseEvent) {
 		onMove(e.clientX, e.clientY, e)
@@ -66,7 +71,7 @@ function Dragger (
 	function onMouseUp (e: MouseEvent) {
 		window.removeEventListener('mousemove', onMouseMove)
 		window.removeEventListener('mouseup', onMouseUp)
-		onRelease(e.clientX, e.clientY)
+		onRelease(e.clientX, e.clientY, e)
 	}
 
 	function onTouchStart (e: TouchEvent) {
@@ -76,7 +81,7 @@ function Dragger (
 		el.addEventListener('touchmove', onTouchMove)
 		el.addEventListener('touchend', onTouchEnd)
 		const t = e.changedTouches[0]
-		onPress(t.clientX, t.clientY)
+		onPress(t.clientX, t.clientY, e)
 	}
 	function onTouchMove (e: TouchEvent) {
 		const t = e.changedTouches[0]
@@ -86,19 +91,20 @@ function Dragger (
 		el.removeEventListener('touchmove', onTouchMove)
 		el.removeEventListener('touchend', onTouchEnd)
 		const t = e.changedTouches[0]
-		onRelease(t.clientX, t.clientY)
+		onRelease(t.clientX, t.clientY, e)
 	}
 
-	function onPress (x: number, y: number) {
+	function onPress (x: number, y: number, e: MouseEvent | TouchEvent) {
 		isScrolling = false
 		pressed = true
 		dragStart.x = x
 		dragStart.y = y
 		speedo.start(0, Date.now() / 1000)
 		document.addEventListener('scroll', onScroll, true)
+		ondevicepress && ondevicepress(e)
 	}
 
-	function onMove (x: number, y: number, e: Event) {
+	function onMove (x: number, y: number, e: MouseEvent | TouchEvent) {
 		if (!pressed) return
 		let dx = x - dragStart.x
 		if (maxLeft != null) {
@@ -123,7 +129,7 @@ function Dragger (
 		ondragmove && ondragmove(dx, speedo.getVel())
 	}
 
-	function onRelease (x: number, y: number) {
+	function onRelease (x: number, y: number, e: MouseEvent | TouchEvent) {
 		document.removeEventListener('scroll', onScroll, true)
 		pressed = false
 		if (!isDragging) {
@@ -136,6 +142,7 @@ function Dragger (
 		setTimeout(() => {
 			if (!pressed) device = NONE
 		}, DEVICE_DELAY)
+		ondevicerelease && ondevicerelease(e)
 		ondragend && ondragend(dx, speedo.getVel())
 	}
 

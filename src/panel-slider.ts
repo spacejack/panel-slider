@@ -67,6 +67,11 @@ function PanelSlider ({
 			setX(el, curPosX)
 			swipeAnim(dvx, callbacks.change)
 			callbacks.dragend && callbacks.dragend(dx, dvx)
+		},
+		ondevicepress() {
+			// Ensure that we have up-to-date dimensions whenever
+			// a drag action may start.
+			resize()
 		}
 	})
 
@@ -162,6 +167,8 @@ function PanelSlider ({
 		callbacks.change = undefined
 		el = undefined as any
 	}
+
+	window.addEventListener('resize', resize)
 
 	return {
 		/** Add an event listener */
