@@ -2,7 +2,7 @@
 
 © by Mike Linkovich | [www.spacejack.ca](http://www.spacejack.ca/)
 
-### [Live demo](http://www.spacejack.ca/panel-slider/)
+### [Live demo](https://spacejack.github.io/panel-slider/)
 
 ## Example Usage:
 
