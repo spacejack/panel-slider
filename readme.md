@@ -43,11 +43,13 @@ interface PanelSliderOptions {
 ```typescript
 interface PanelSlider {
 	/** Fires when drag starts */
-	on (eventType: 'dragstart', cb: (dx: number) => void): void
+	on (eventType: 'dragstart', cb: (d: Drag) => void): void
 	/** Fires every move event while dragging */
-	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'drag', cb: (d: Drag) => void): void
 	/** Fires when drag ended */
-	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Fires every frame the panel moves */
+	on (eventType: 'animate', cb: (panelFraction: number) => void): void
 	/** Fires when current panel has changed */
 	on (eventType: 'change', cb: (panelId: number) => void): void
 	/** Sets the current panel - animates to position */

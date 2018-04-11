@@ -2,10 +2,19 @@ import Dragger from './dragger'
 import {setX} from './transform'
 import {clamp, terpIn} from './math'
 
+/** Object provided to drag callbacks */
+export interface Drag {
+	/** Horizontal amount dragged from start (in pixels) */
+	x: number
+	/** Current horizontal velocity */
+	v: number
+}
+
 export interface Callbacks {
-	dragstart?: (dx: number) => void
-	drag?: (dx: number, vx: number) => void
-	dragend?: (dx: number, vx: number) => void
+	dragstart?: (d: Drag) => void
+	drag?: (d: Drag) => void
+	dragend?: (d: Drag) => void
+	animate?: (panelFraction: number) => void
 	change?: (panelId: number) => void
 }
 
@@ -30,11 +39,13 @@ export interface PanelSliderOptions {
 
 interface PanelSlider {
 	/** Fires when drag starts */
-	on (eventType: 'dragstart', cb: (dx: number) => void): void
+	on (eventType: 'dragstart', cb: (d: Drag) => void): void
 	/** Fires every move event while dragging */
-	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'drag', cb: (d: Drag) => void): void
 	/** Fires when drag ended */
-	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Fires every frame the panel moves */
+	on (eventType: 'animate', cb: (panelFraction: number) => void): void
 	/** Fires when current panel has changed */
 	on (eventType: 'change', cb: (panelId: number) => void): void
 	/** Sets the current panel - animates to position */
@@ -68,10 +79,15 @@ function PanelSlider ({
 
 	const dragger = Dragger(element, {
 		dragThreshold, dragRatio,
+		ondragstart (dx) {
+			callbacks.dragstart && callbacks.dragstart({x: dx, v: 0})
+		},
 		ondragmove(dx, dvx) {
 			const ox = -curPanel * panelWidth
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
 			setX(element, curPosX)
+			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
+			callbacks.drag && callbacks.drag({x: dx, v: dvx})
 		},
 		ondragcancel() {
 			swipeAnim(0, callbacks.change)
@@ -81,7 +97,8 @@ function PanelSlider ({
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
 			setX(element, curPosX)
 			swipeAnim(dvx, callbacks.change)
-			callbacks.dragend && callbacks.dragend(dx, dvx)
+			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
+			callbacks.dragend && callbacks.dragend({x: dx, v: dvx})
 		},
 		ondevicepress() {
 			// Ensure we have up-to-date dimensions whenever a drag action
@@ -129,6 +146,7 @@ function PanelSlider ({
 			const animT = Math.min(totalT, dur)
 			curPosX = terpIn(startX, destX, animT / dur)
 			setX(element, curPosX)
+			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
 			if (totalT < dur) {
 				requestAnimationFrame(loop)
 			} else {
@@ -154,7 +172,7 @@ function PanelSlider ({
 	/** Add an event listener */
 	function on (
 		eventType: EventTypes,
-		cb: (dx: number, dy: number) => void
+		cb: ((d: Drag) => void) | ((id: number) => void)
 	) {
 		// TODO: Add multiple callbacks instead of replace?
 		callbacks[eventType] = cb
