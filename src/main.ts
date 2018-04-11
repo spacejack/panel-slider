@@ -1,6 +1,6 @@
-import createSlider from './panel-slider'
+import PanelSlider from './panel-slider'
 
-const slider = createSlider({
+const slider = PanelSlider({
 	el: document.querySelector('.panel-set') as HTMLElement,
 	numPanels: 3,
 	initialPanel: 0

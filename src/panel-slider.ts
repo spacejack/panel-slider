@@ -1,4 +1,4 @@
-import createSpeedo from './speedo'
+import Dragger from './dragger'
 import {setX} from './transform'
 import {clamp, terpIn} from './math'
 
@@ -9,22 +9,9 @@ export interface Callbacks {
 	change?: (panelId: number) => void
 }
 
-type EventTypes = keyof Callbacks
+export type EventTypes = keyof Callbacks
 
-const DEFAULT_DRAG_THRESHOLD  = 15
-const DEFAULT_RATIO_THRESHOLD = 2.0
-const DEFAULT_SLIDE_DURATION  = 500
-
-export interface PanelSlider {
-	on (eventType: 'dragstart', cb: (dx: number) => void): void
-	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
-	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
-	on (eventType: 'change', cb: (panelId: number) => void): void
-	setPanel (panelId: number, done?: (panelId: number) => void): void
-	getPanel(): number
-	destroy(): void
-	size: {fullWidth: number, panelWidth: number}
-}
+const DEFAULT_SLIDE_DURATION = 500
 
 export interface Options {
 	el: HTMLElement
@@ -32,132 +19,65 @@ export interface Options {
 	initialPanel: number
 	slideDuration?: number
 	dragThreshold?: number
-	ratioThreshold?: number
+	dragRatio?: number
+}
+
+interface PanelSlider {
+	on (eventType: 'dragstart', cb: (dx: number) => void): void
+	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
+	on (eventType: 'change', cb: (panelId: number) => void): void
+	setPanel (panelId: number, done?: (panelId: number) => void): void
+	getPanel(): number
+	destroy(): void
+	getSizes(): {fullWidth: number, panelWidth: number}
 }
 
 /**
  * Drags an element horizontally between sections.
  */
-export default function createPanelSlider ({
+function PanelSlider ({
 	el, numPanels, initialPanel,
 	slideDuration = DEFAULT_SLIDE_DURATION,
-	dragThreshold = DEFAULT_DRAG_THRESHOLD,
-	ratioThreshold = DEFAULT_RATIO_THRESHOLD
+	dragThreshold, dragRatio
 }: Options): PanelSlider {
 	const callbacks: Callbacks = {}
-	const pressStart = {x: 0, y: 0}
-	const size = {fullWidth: numPanels, panelWidth: 1}
-	const speedo = createSpeedo()
-	let isPressed = false
-	let isDragging = false
+	// Will be computed on resize
+	let fullWidth = numPanels
+	let panelWidth = 1
 	let curPanel = initialPanel
 	let curPosX = 0
 	let isAnimating = false
-	let isScrolling = false
 
-	onResize()
+	resize()
 
-	// Setup touch listeners
-	el.addEventListener('touchstart', onTouchStart)
-	el.addEventListener('touchmove', onTouchMove)
-	el.addEventListener('touchend', onTouchEnd)
-
-	// Scroll listener for scrollable child elements
-	el.addEventListener('scroll', onScroll, true)
-
-	// Resize listener
-	window.addEventListener('resize', onResize)
-
-	// Event handlers
-	function onTouchStart (e: TouchEvent) {
-		const touch = e.changedTouches[0]
-		onPress(touch.clientX, touch.clientY)
-	}
-
-	function onTouchMove (e: TouchEvent) {
-		const touch = e.changedTouches[0]
-		onMove(touch.clientX, touch.clientY, e)
-	}
-
-	function onTouchEnd (e: TouchEvent) {
-		const touch = e.changedTouches[0]
-		onRelease(touch.clientX, touch.clientY)
-	}
-
-	function onScroll (e: UIEvent) {
-		if (isDragging) return
-		isScrolling = true
-		isPressed = false
-		isDragging = false
-	}
-
-	function onPress (x: number, y: number) {
-		isDragging = false
-		isPressed = true
-		isScrolling = false
-		pressStart.x = x
-		pressStart.y = y
-	}
-
-	function onMove (x: number, y: number, e: Event) {
-		if (!isPressed) return
-		if (isDragging) {
-			e.preventDefault()
-			drag(x, y)
-		} else if (!isScrolling) {
-			tryStartDrag(x, y, e)
+	const dragger = Dragger(el, {
+		dragThreshold, dragRatio,
+		ondragmove(dx, dvx) {
+			const ox = -curPanel * panelWidth
+			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
+			setX(el, curPosX)
+		},
+		ondragcancel() {
+			swipeAnim(0, callbacks.change)
+		},
+		ondragend (dx, dvx) {
+			const ox = -curPanel * panelWidth
+			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
+			setX(el, curPosX)
+			swipeAnim(dvx, callbacks.change)
+			callbacks.dragend && callbacks.dragend(dx, dvx)
 		}
-	}
-
-	function onRelease (x: number, y: number) {
-		isPressed = false
-		if (!isDragging) return
-		isDragging = false
-		endDrag(x, y)
-	}
-
-	// Drag functions
-
-	function tryStartDrag (x: number, y: number, e: Event) {
-		speedo.start(0, Date.now() / 1000)
-		const dx = x - pressStart.x
-		const dy = y - pressStart.y
-		const ratio = dy !== 0 ? Math.abs(dx / dy) : 100000.0
-		if (Math.abs(dx) > dragThreshold && ratio > ratioThreshold) {
-			isDragging = true
-			e.preventDefault()
-			callbacks.dragstart && callbacks.dragstart(dx)
-		}
-	}
-
-	function drag (x: number, y: number) {
-		const dx = x - pressStart.x
-		speedo.addSample(dx, Date.now() / 1000)
-		const ox = -curPanel * size.panelWidth
-		curPosX = Math.round(clamp(ox + dx, -(size.fullWidth - size.panelWidth), 0))
-		setX(el, curPosX)
-		callbacks.drag && callbacks.drag(dx, speedo.getVel())
-	}
-
-	function endDrag (x: number, y: number) {
-		const dx = x - pressStart.x
-		speedo.addSample(dx, Date.now() / 1000)
-		const ox = -curPanel * size.panelWidth
-		curPosX = Math.round(clamp(ox + dx, -(size.fullWidth - size.panelWidth), 0))
-		setX(el, curPosX)
-		const xvel = speedo.getVel()
-		swipeAnim(xvel, callbacks.change)
-		callbacks.dragend && callbacks.dragend(dx, xvel)
-	}
+	})
 
 	function swipeAnim (xvel: number, done?: (panelId: number) => void) {
 		const x = curPosX + xvel * 0.5
-		let destination = clamp(Math.round(-x / size.panelWidth), 0, numPanels - 1)
+		let destination = clamp(Math.round(-x / panelWidth), 0, numPanels - 1)
 		const p0 = curPanel
 		if (destination - p0 > 1) destination = p0 + 1
 		else if (p0 - destination > 1) destination = p0 - 1
 		const dur = clamp(
-			slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / size.panelWidth)),
+			slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)),
 			17, slideDuration
 		)
 		animateTo(destination, dur, done)
@@ -172,7 +92,7 @@ export default function createPanelSlider ({
 		}
 		isAnimating = true
 		const startX = curPosX
-		const destX = -destPanel * size.panelWidth
+		const destX = -destPanel * panelWidth
 		if (destX === startX) {
 			if (destPanel !== curPanel) curPanel = destPanel
 			done && requestAnimationFrame(() => {
@@ -184,7 +104,7 @@ export default function createPanelSlider ({
 		const startT = Date.now()
 		function loop() {
 			const t = Date.now()
-			const destX = -destPanel * size.panelWidth
+			const destX = -destPanel * panelWidth
 			const totalT = t - startT
 			const animT = Math.min(totalT, dur)
 			curPosX = terpIn(startX, destX, animT / dur)
@@ -200,11 +120,11 @@ export default function createPanelSlider ({
 		requestAnimationFrame(loop)
 	}
 
-	function onResize() {
+	function resize() {
 		const rc = el.getBoundingClientRect()
-		size.panelWidth = rc.width
-		size.fullWidth = size.panelWidth * numPanels
-		curPosX = -curPanel * size.panelWidth
+		panelWidth = rc.width
+		fullWidth = panelWidth * numPanels
+		curPosX = -curPanel * panelWidth
 		setX(el, curPosX)
 	}
 
@@ -234,28 +154,27 @@ export default function createPanelSlider ({
 	/** Remove all event handlers, cleanup streams etc. */
 	function destroy() {
 		// Remove event listeners
-		window.removeEventListener('resize', onResize)
-		el.removeEventListener('scroll', onScroll, true)
-		el.removeEventListener('touchstart', onTouchStart)
-		el.removeEventListener('touchmove', onTouchMove)
-		el.removeEventListener('touchend', onTouchEnd)
+		window.removeEventListener('resize', resize)
+		dragger.destroy()
 		callbacks.dragstart = undefined
 		callbacks.drag = undefined
 		callbacks.dragend = undefined
 		callbacks.change = undefined
-		el = null as any
+		el = undefined as any
 	}
 
 	return {
 		/** Add an event listener */
 		on,
-		/** Remove all event handlers, cleanup streams etc. */
+		/** Remove all event handlers, cleanup etc. */
 		destroy,
 		/** Returns current panel index */
 		getPanel,
 		/** Sets current panel index, animates to position */
 		setPanel,
 		/** Current sizes */
-		size
+		getSizes: () => ({fullWidth, panelWidth})
 	}
 }
+
+export default PanelSlider
