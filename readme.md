@@ -4,31 +4,60 @@
 
 ### [Live demo](http://www.spacejack.ca/panel-slider/)
 
-## Usage:
+## Example Usage:
 
 ```typescript
-import createSlider from './panel-slider'
+import PanelSlider from 'panel-slider'
 
-const slider = createSlider({
+const slider = PanelSlider({
 	// The root element containing all panels
-	el: panelsElement,
+	element: document.querySelector('.my-panel-slider'),
 	// Number of equal-sized panels
 	numPanels: 3,
 	// Starting panel
-	initialPanel: 0,
-	// Elements that should only scroll when not swiping
-	scrollables: [el1, el2, el3]
+	initialPanel?: 0
 })
+```
 
-// Callbacks triggered on events
-slider.on('change' (panelIndex) => {
-	// ...
-})
+## All Options:
 
-// Animate to panel index (starting from 0)
-slider.setPanel(1) // slides to 2nd panel
+```typescript
+interface PanelSliderOptions {
+	/** The root element to use */
+	element: HTMLElement
+	/** Number of panels the root element is divided into */
+	numPanels: number
+	/** Starting panel */
+	initialPanel: number
+	/** Duration of slide animation (default 500ms) */
+	slideDuration?: number
+	/** Horizontal drag distance threshold (default 12px) */
+	dragThreshold?: number
+	/** Required minimum horizontal:vertical ratio (default 1.5) */
+	dragRatio?: number
+}
+```
 
-// Cleanup, remove listeners
-slider.destroy()
+## Returned Interface:
+
+```typescript
+interface PanelSlider {
+	/** Fires when drag starts */
+	on (eventType: 'dragstart', cb: (dx: number) => void): void
+	/** Fires every move event while dragging */
+	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
+	/** Fires when drag ended */
+	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
+	/** Fires when current panel has changed */
+	on (eventType: 'change', cb: (panelId: number) => void): void
+	/** Sets the current panel - animates to position */
+	setPanel (panelId: number, done?: (panelId: number) => void): void
+	/** Gets the current panel */
+	getPanel(): number
+	/** Gets the current root element & panel sizes */
+	getSizes(): {fullWidth: number, panelWidth: number}
+	/** Destroy & cleanup resources */
+	destroy(): void
+}
 
 ```

@@ -13,34 +13,49 @@ export type EventTypes = keyof Callbacks
 
 const DEFAULT_SLIDE_DURATION = 500
 
-export interface Options {
-	el: HTMLElement
+export interface PanelSliderOptions {
+	/** The root element to use */
+	element: HTMLElement
+	/** Number of panels the root element is divided into */
 	numPanels: number
-	initialPanel: number
+	/** Starting panel */
+	initialPanel?: number
+	/** Duration of slide animation (default 500ms) */
 	slideDuration?: number
+	/** Horizontal drag distance threshold (default 12px) */
 	dragThreshold?: number
+	/** Required minimum horizontal:vertical ratio (default 1.5) */
 	dragRatio?: number
 }
 
 interface PanelSlider {
+	/** Fires when drag starts */
 	on (eventType: 'dragstart', cb: (dx: number) => void): void
+	/** Fires every move event while dragging */
 	on (eventType: 'drag', cb: (dx: number, vx: number) => void): void
+	/** Fires when drag ended */
 	on (eventType: 'dragend', cb: (dx: number, vx: number) => void): void
+	/** Fires when current panel has changed */
 	on (eventType: 'change', cb: (panelId: number) => void): void
+	/** Sets the current panel - animates to position */
 	setPanel (panelId: number, done?: (panelId: number) => void): void
+	/** Gets the current panel */
 	getPanel(): number
-	destroy(): void
+	/** Gets the current root element & panel sizes */
 	getSizes(): {fullWidth: number, panelWidth: number}
+	/** Destroy & cleanup resources */
+	destroy(): void
 }
 
 /**
  * Drags an element horizontally between sections.
  */
 function PanelSlider ({
-	el, numPanels, initialPanel,
+	element,
+	numPanels, initialPanel = 0,
 	slideDuration = DEFAULT_SLIDE_DURATION,
 	dragThreshold, dragRatio
-}: Options): PanelSlider {
+}: PanelSliderOptions): PanelSlider {
 	const callbacks: Callbacks = {}
 	// Will be computed on resize
 	let fullWidth = numPanels
@@ -51,12 +66,12 @@ function PanelSlider ({
 
 	resize()
 
-	const dragger = Dragger(el, {
+	const dragger = Dragger(element, {
 		dragThreshold, dragRatio,
 		ondragmove(dx, dvx) {
 			const ox = -curPanel * panelWidth
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
-			setX(el, curPosX)
+			setX(element, curPosX)
 		},
 		ondragcancel() {
 			swipeAnim(0, callbacks.change)
@@ -64,13 +79,13 @@ function PanelSlider ({
 		ondragend (dx, dvx) {
 			const ox = -curPanel * panelWidth
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
-			setX(el, curPosX)
+			setX(element, curPosX)
 			swipeAnim(dvx, callbacks.change)
 			callbacks.dragend && callbacks.dragend(dx, dvx)
 		},
 		ondevicepress() {
-			// Ensure that we have up-to-date dimensions whenever
-			// a drag action may start.
+			// Ensure we have up-to-date dimensions whenever a drag action
+			// may start in case we missed a stealth window resize.
 			resize()
 		}
 	})
@@ -113,7 +128,7 @@ function PanelSlider ({
 			const totalT = t - startT
 			const animT = Math.min(totalT, dur)
 			curPosX = terpIn(startX, destX, animT / dur)
-			setX(el, curPosX)
+			setX(element, curPosX)
 			if (totalT < dur) {
 				requestAnimationFrame(loop)
 			} else {
@@ -126,11 +141,11 @@ function PanelSlider ({
 	}
 
 	function resize() {
-		const rc = el.getBoundingClientRect()
+		const rc = element.getBoundingClientRect()
 		panelWidth = rc.width
 		fullWidth = panelWidth * numPanels
 		curPosX = -curPanel * panelWidth
-		setX(el, curPosX)
+		setX(element, curPosX)
 	}
 
 	///////////////////////////////////////////////////////
@@ -165,7 +180,7 @@ function PanelSlider ({
 		callbacks.drag = undefined
 		callbacks.dragend = undefined
 		callbacks.change = undefined
-		el = undefined as any
+		element = undefined as any
 	}
 
 	window.addEventListener('resize', resize)
