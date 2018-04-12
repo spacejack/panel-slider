@@ -188,7 +188,10 @@ function Dragger (
 		el.addEventListener('touchstart', onTouchStart)
 	}
 
-	return {destroy}
+	return {
+		isDragging: () => isDragging,
+		destroy
+	}
 }
 
 type Dragger = ReturnType<typeof Dragger>

@@ -16,7 +16,9 @@ export interface EventEmitters {
 	dragstart: ((d: Drag) => void)[]
 	drag: ((d: Drag) => void)[]
 	dragend: ((d: Drag) => void)[]
+	dragcancel: ((d: Drag) => void)[]
 	animate: ((panelFraction: number) => void)[]
+	animationstatechange: ((animating: boolean) => void)[]
 	panelchange: ((panelId: number) => void)[]
 }
 
@@ -75,10 +77,18 @@ interface PanelSlider {
 	on(eventType: 'dragend', cb: (d: Drag) => void): void
 	/** Remove dragend listener */
 	off(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Add a listener that fires when drag canceled */
+	on(eventType: 'dragcancel', cb: (d: Drag) => void): void
+	/** Remove dragcancel listener */
+	off(eventType: 'dragcancel', cb: (d: Drag) => void): void
 	/** Add a listener that fires every frame the panel moves */
 	on(eventType: 'animate', cb: (panelFraction: number) => void): void
 	/** Remove animate listener */
 	off(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Add a listener that fires when animation starts or ends */
+	on(eventType: 'animationstatechange', cb: (animating: boolean) => void): void
+	/** Remove animationstatechange listener */
+	off(eventType: 'animationstatechange', cb: (animating: boolean) => void): void
 	/** Add a listener that fires when current panel has changed */
 	on(eventType: 'panelchange', cb: (panelId: number) => void): void
 	/** Remove panelchange listener */
@@ -89,6 +99,10 @@ interface PanelSlider {
 	getPanel(): number
 	/** Gets the current root element & panel sizes */
 	getSizes(): {fullWidth: number, panelWidth: number}
+	/** Returns whether panels are currently being dragged or not */
+	isDragging(): boolean
+	/** Returns whether panels are currently animating or not */
+	isAnimating(): boolean
 	/** Destroy & cleanup resources */
 	destroy(): void
 }
@@ -107,7 +121,9 @@ function PanelSlider ({
 		dragstart: [],
 		drag: [],
 		dragend: [],
+		dragcancel: [],
 		animate: [],
+		animationstatechange: [],
 		panelchange: []
 	}
 	// Will be computed on resize
@@ -133,6 +149,7 @@ function PanelSlider ({
 			emit('drag', {x: dx, v: dvx})
 		},
 		ondragcancel() {
+			emit('dragcancel', {x: curPosX, v: 0})
 			swipeAnim(0, pid => {emit('panelchange', pid)})
 		},
 		ondragend (dx, dvx) {
@@ -170,6 +187,7 @@ function PanelSlider ({
 		animateTo(destination, dur, done)
 	}
 
+	/** Animate panels to the specified panelId */
 	function animateTo (
 		destPanel: number, dur = slideDuration, done?: (panelId: number) => void
 	) {
@@ -177,18 +195,22 @@ function PanelSlider ({
 			console.warn("Cannot animateTo - already animating")
 			return
 		}
+		if (dragger.isDragging()) {
+			console.warn("Cannot animateTo - currently dragging")
+			return
+		}
+
 		isAnimating = true
 		const startX = curPosX
 		const destX = -destPanel * panelWidth
-		if (destX === startX) {
-			if (destPanel !== curPanel) curPanel = destPanel
-			done && requestAnimationFrame(() => {
-				done(curPanel)
-			})
+
+		function finish() {
+			curPanel = destPanel
 			isAnimating = false
-			return
+			emit('animationstatechange', false)
+			done && done(curPanel)
 		}
-		const startT = Date.now()
+
 		function loop() {
 			const t = Date.now()
 			const destX = -destPanel * panelWidth
@@ -200,12 +222,19 @@ function PanelSlider ({
 			if (totalT < dur) {
 				requestAnimationFrame(loop)
 			} else {
-				curPanel = destPanel
-				isAnimating = false
-				done && done(curPanel)
+				finish()
 			}
 		}
+
+		if (destX === startX) {
+			requestAnimationFrame(finish)
+			emit('animationstatechange', true)
+			return
+		}
+
+		const startT = Date.now()
 		requestAnimationFrame(loop)
+		emit('animationstatechange', true)
 	}
 
 	/** Update our full width and panel width on resize */
@@ -223,7 +252,7 @@ function PanelSlider ({
 	/** Add an event listener */
 	function on (
 		n: EventName,
-		fn: ((d: Drag) => void) | ((id: number) => void)
+		fn: (param: any) => void
 	) {
 		const arr = emitters[n] as any[]
 		if (arr.indexOf(fn) === -1) {
@@ -234,7 +263,7 @@ function PanelSlider ({
 	/** Remove an event listener */
 	function off (
 		n: EventName,
-		fn: ((d: Drag) => void) | ((id: number) => void)
+		fn: (param: any) => void
 	) {
 		const arr = emitters[n] as any[]
 		const i = arr.indexOf(fn)
@@ -259,29 +288,24 @@ function PanelSlider ({
 		// Remove event listeners
 		window.removeEventListener('resize', resize)
 		dragger.destroy()
-		emitters.dragstart.length = 0
-		emitters.drag.length = 0
-		emitters.dragend.length = 0
-		emitters.panelchange.length = 0
+		Object.keys(emitters).forEach((k: EventName) => {
+			emitters[k].length = 0
+		})
 		element = undefined as any
 	}
 
 	window.addEventListener('resize', resize)
 
 	return {
-		/** Add an event listener */
 		on,
-		/** Remove an event listener */
 		off,
-		/** Remove all event handlers, cleanup etc. */
-		destroy,
-		/** Returns current panel index */
 		getPanel,
-		/** Sets current panel index, animates to position */
 		setPanel,
-		/** Current sizes */
-		getSizes: () => ({fullWidth, panelWidth})
+		getSizes: () => ({fullWidth, panelWidth}),
+		isDragging: dragger.isDragging,
+		isAnimating: () => isAnimating,
+		destroy,
 	}
 }
 
-export default PanelSlider
+  export default PanelSlider
