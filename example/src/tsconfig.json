@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "module": "umd",
+    "module": "commonjs",
     "lib": ["es2015", "dom"],
     "strict": true,
-    "strictFunctionTypes": false,
-    "declaration": true
+    "strictFunctionTypes": false
   },
-  "files": ["index.ts"],
+  "files": ["main.ts"],
   "compileOnSave": false,
   "buildOnSave": false,
   "atom": {

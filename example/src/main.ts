@@ -1,4 +1,4 @@
-import PanelSlider from './panel-slider'
+import PanelSlider from '../../src/index'
 
 const slider = PanelSlider({
 	element: document.querySelector('.panel-set') as HTMLElement,
