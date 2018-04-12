@@ -12,15 +12,15 @@ export interface Drag {
 	v: number
 }
 
-export interface Callbacks {
-	dragstart?: (d: Drag) => void
-	drag?: (d: Drag) => void
-	dragend?: (d: Drag) => void
-	animate?: (panelFraction: number) => void
-	change?: (panelId: number) => void
+export interface EventEmitters {
+	dragstart: ((d: Drag) => void)[]
+	drag: ((d: Drag) => void)[]
+	dragend: ((d: Drag) => void)[]
+	animate: ((panelFraction: number) => void)[]
+	panelchange: ((panelId: number) => void)[]
 }
 
-export type EventTypes = keyof Callbacks
+export type EventName = keyof EventEmitters
 
 /**
  * Default animation interpolation function
@@ -63,18 +63,28 @@ export interface PanelSliderOptions {
  * Public API returned by PanelSlider factory function
  */
 interface PanelSlider {
-	/** Fires when drag starts */
-	on (eventType: 'dragstart', cb: (d: Drag) => void): void
-	/** Fires every move event while dragging */
-	on (eventType: 'drag', cb: (d: Drag) => void): void
-	/** Fires when drag ended */
-	on (eventType: 'dragend', cb: (d: Drag) => void): void
-	/** Fires every frame the panel moves */
-	on (eventType: 'animate', cb: (panelFraction: number) => void): void
-	/** Fires when current panel has changed */
-	on (eventType: 'change', cb: (panelId: number) => void): void
+	/** Add a listener that fires when drag starts */
+	on(eventType: 'dragstart', cb: (d: Drag) => void): void
+	/** Remove dragstart listener */
+	off(eventType: 'dragstart', cb: (d: Drag) => void): void
+	/** Add a listener that fires every move event while dragging */
+	on(eventType: 'drag', cb: (d: Drag) => void): void
+	/** Remove drag listener */
+	off(eventType: 'drag', cb: (d: Drag) => void): void
+	/** Add a listener that fires when drag ended */
+	on(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Remove dragend listener */
+	off(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Add a listener that fires every frame the panel moves */
+	on(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Remove animate listener */
+	off(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Add a listener that fires when current panel has changed */
+	on(eventType: 'panelchange', cb: (panelId: number) => void): void
+	/** Remove panelchange listener */
+	off(eventType: 'panelchange', cb: (panelId: number) => void): void
 	/** Sets the current panel - animates to position */
-	setPanel (panelId: number, done?: (panelId: number) => void): void
+	setPanel(panelId: number, done?: (panelId: number) => void): void
 	/** Gets the current panel */
 	getPanel(): number
 	/** Gets the current root element & panel sizes */
@@ -93,7 +103,13 @@ function PanelSlider ({
 	dragThreshold, dragRatio, devices,
 	terp = terpFn
 }: PanelSliderOptions): PanelSlider {
-	const callbacks: Callbacks = {}
+	const emitters: EventEmitters = {
+		dragstart: [],
+		drag: [],
+		dragend: [],
+		animate: [],
+		panelchange: []
+	}
 	// Will be computed on resize
 	let fullWidth = numPanels
 	let panelWidth = 1
@@ -107,25 +123,25 @@ function PanelSlider ({
 		dragThreshold, dragRatio,
 		devices,
 		ondragstart (dx) {
-			callbacks.dragstart && callbacks.dragstart({x: dx, v: 0})
+			emit('dragstart', {x: dx, v: 0})
 		},
 		ondragmove(dx, dvx) {
 			const ox = -curPanel * panelWidth
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
 			setX(element, curPosX)
-			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
-			callbacks.drag && callbacks.drag({x: dx, v: dvx})
+			emit('animate', -curPosX / panelWidth)
+			emit('drag', {x: dx, v: dvx})
 		},
 		ondragcancel() {
-			swipeAnim(0, callbacks.change)
+			swipeAnim(0, pid => {emit('panelchange', pid)})
 		},
 		ondragend (dx, dvx) {
 			const ox = -curPanel * panelWidth
 			curPosX = Math.round(clamp(ox + dx, -(fullWidth - panelWidth), 0))
 			setX(element, curPosX)
-			swipeAnim(dvx, callbacks.change)
-			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
-			callbacks.dragend && callbacks.dragend({x: dx, v: dvx})
+			swipeAnim(dvx, pid => {emit('panelchange', pid)})
+			emit('animate', -curPosX / panelWidth)
+			emit('dragend', {x: dx, v: dvx})
 		},
 		ondevicepress() {
 			// Ensure we have up-to-date dimensions whenever a drag action
@@ -133,6 +149,13 @@ function PanelSlider ({
 			resize()
 		}
 	})
+
+	function emit (n: EventName, value: any) {
+		const arr = emitters[n] as any[]
+		for (let i = 0; i < arr.length; ++i) {
+			arr[i](value)
+		}
+	}
 
 	function swipeAnim (xvel: number, done?: (panelId: number) => void) {
 		const x = curPosX + xvel * 0.5
@@ -173,7 +196,7 @@ function PanelSlider ({
 			const animT = Math.min(totalT, dur)
 			curPosX = terp(startX, destX, animT / dur)
 			setX(element, curPosX)
-			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
+			emit('animate', -curPosX / panelWidth)
 			if (totalT < dur) {
 				requestAnimationFrame(loop)
 			} else {
@@ -199,11 +222,25 @@ function PanelSlider ({
 
 	/** Add an event listener */
 	function on (
-		eventType: EventTypes,
-		cb: ((d: Drag) => void) | ((id: number) => void)
+		n: EventName,
+		fn: ((d: Drag) => void) | ((id: number) => void)
 	) {
-		// TODO: Add multiple callbacks instead of replace?
-		callbacks[eventType] = cb
+		const arr = emitters[n] as any[]
+		if (arr.indexOf(fn) === -1) {
+			arr.push(fn)
+		}
+	}
+
+	/** Remove an event listener */
+	function off (
+		n: EventName,
+		fn: ((d: Drag) => void) | ((id: number) => void)
+	) {
+		const arr = emitters[n] as any[]
+		const i = arr.indexOf(fn)
+		if (i >= 0) {
+			arr.splice(i, 1)
+		}
 	}
 
 	/** Returns current panel index */
@@ -222,10 +259,10 @@ function PanelSlider ({
 		// Remove event listeners
 		window.removeEventListener('resize', resize)
 		dragger.destroy()
-		callbacks.dragstart = undefined
-		callbacks.drag = undefined
-		callbacks.dragend = undefined
-		callbacks.change = undefined
+		emitters.dragstart.length = 0
+		emitters.drag.length = 0
+		emitters.dragend.length = 0
+		emitters.panelchange.length = 0
 		element = undefined as any
 	}
 
@@ -234,6 +271,8 @@ function PanelSlider ({
 	return {
 		/** Add an event listener */
 		on,
+		/** Remove an event listener */
+		off,
 		/** Remove all event handlers, cleanup etc. */
 		destroy,
 		/** Returns current panel index */

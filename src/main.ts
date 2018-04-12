@@ -14,7 +14,7 @@ function $e (id: string) {
 const elId = $e('panelId')
 const elPos = $e('panelPos')
 
-slider.on('change', panelId => {
+slider.on('panelchange', panelId => {
 	elId.textContent = String(panelId)
 })
 

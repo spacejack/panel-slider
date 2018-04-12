@@ -51,18 +51,28 @@ interface PanelSliderOptions {
 
 ```typescript
 interface PanelSlider {
-	/** Fires when drag starts */
-	on (eventType: 'dragstart', cb: (d: Drag) => void): void
-	/** Fires every move event while dragging */
-	on (eventType: 'drag', cb: (d: Drag) => void): void
-	/** Fires when drag ended */
-	on (eventType: 'dragend', cb: (d: Drag) => void): void
-	/** Fires every frame the panel moves */
-	on (eventType: 'animate', cb: (panelFraction: number) => void): void
-	/** Fires when current panel has changed */
-	on (eventType: 'change', cb: (panelId: number) => void): void
+	/** Add a listener that fires when drag starts */
+	on(eventType: 'dragstart', cb: (d: Drag) => void): void
+	/** Remove dragstart listener */
+	off(eventType: 'dragstart', cb: (d: Drag) => void): void
+	/** Add a listener that fires every move event while dragging */
+	on(eventType: 'drag', cb: (d: Drag) => void): void
+	/** Remove drag listener */
+	off(eventType: 'drag', cb: (d: Drag) => void): void
+	/** Add a listener that fires when drag ended */
+	on(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Remove dragend listener */
+	off(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Add a listener that fires every frame the panel moves */
+	on(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Remove animate listener */
+	off(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Add a listener that fires when current panel has changed */
+	on(eventType: 'panelchange', cb: (panelId: number) => void): void
+	/** Remove panelchange listener */
+	off(eventType: 'panelchange', cb: (panelId: number) => void): void
 	/** Sets the current panel - animates to position */
-	setPanel (panelId: number, done?: (panelId: number) => void): void
+	setPanel(panelId: number, done?: (panelId: number) => void): void
 	/** Gets the current panel */
 	getPanel(): number
 	/** Gets the current root element & panel sizes */
