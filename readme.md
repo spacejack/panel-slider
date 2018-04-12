@@ -4,6 +4,10 @@
 
 ### [Live demo](https://spacejack.github.io/panel-slider/)
 
+## Install:
+
+	npm install panel-slider
+
 ## Example Usage:
 
 ```typescript
