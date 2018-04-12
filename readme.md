@@ -63,10 +63,18 @@ interface PanelSlider {
 	on(eventType: 'dragend', cb: (d: Drag) => void): void
 	/** Remove dragend listener */
 	off(eventType: 'dragend', cb: (d: Drag) => void): void
+	/** Add a listener that fires when drag canceled */
+	on(eventType: 'dragcancel', cb: (d: Drag) => void): void
+	/** Remove dragcancel listener */
+	off(eventType: 'dragcancel', cb: (d: Drag) => void): void
 	/** Add a listener that fires every frame the panel moves */
 	on(eventType: 'animate', cb: (panelFraction: number) => void): void
 	/** Remove animate listener */
 	off(eventType: 'animate', cb: (panelFraction: number) => void): void
+	/** Add a listener that fires when animation starts or ends */
+	on(eventType: 'animationstatechange', cb: (animating: boolean) => void): void
+	/** Remove animationstatechange listener */
+	off(eventType: 'animationstatechange', cb: (animating: boolean) => void): void
 	/** Add a listener that fires when current panel has changed */
 	on(eventType: 'panelchange', cb: (panelId: number) => void): void
 	/** Remove panelchange listener */
@@ -77,6 +85,10 @@ interface PanelSlider {
 	getPanel(): number
 	/** Gets the current root element & panel sizes */
 	getSizes(): {fullWidth: number, panelWidth: number}
+	/** Returns whether panels are currently being dragged or not */
+	isDragging(): boolean
+	/** Returns whether panels are currently animating or not */
+	isAnimating(): boolean
 	/** Destroy & cleanup resources */
 	destroy(): void
 }
