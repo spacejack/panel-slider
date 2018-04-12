@@ -1,6 +1,8 @@
 import Dragger from './dragger'
 import {setX} from './transform'
-import {clamp, terpIn} from './math'
+import {clamp} from './math'
+
+const DEFAULT_SLIDE_DURATION = 500
 
 /** Object provided to drag callbacks */
 export interface Drag {
@@ -20,7 +22,18 @@ export interface Callbacks {
 
 export type EventTypes = keyof Callbacks
 
-const DEFAULT_SLIDE_DURATION = 500
+/**
+ * Default animation interpolation function
+ * @param x0 Start coordinate
+ * @param x1 End coordinate
+ * @param t Time (0..1)
+ */
+export function terpFn (x0: number, x1: number, t: number): number {
+	const r = (Math.PI / 2.0) * t
+	const s = Math.sin(r)
+	const si = 1.0 - s
+	return (x0 * si + x1 * s)
+}
 
 export interface PanelSliderOptions {
 	/** The root element to use */
@@ -29,14 +42,26 @@ export interface PanelSliderOptions {
 	numPanels: number
 	/** Starting panel */
 	initialPanel?: number
-	/** Duration of slide animation (default 500ms) */
+	/** Duration of slide animation on release (default 500ms) */
 	slideDuration?: number
-	/** Horizontal drag distance threshold (default 12px) */
+	/** Horizontal distance threshold to initiate drag (default 12px) */
 	dragThreshold?: number
-	/** Required minimum horizontal:vertical ratio (default 1.5) */
+	/** Minimum required horizontal:vertical ratio to initiate drag (default 1.5) */
 	dragRatio?: number
+	/** Input devices to enable (default ['mouse', 'touch']) */
+	devices?: ('mouse' | 'touch')[]
+	/**
+	 * Optional custom animation interpolation function
+	 * @param x0 Start coordinate
+	 * @param x1 End coordinate
+	 * @param t Time (0..1)
+	 */
+	terp?(x0: number, x1: number, t: number): number
 }
 
+/**
+ * Public API returned by PanelSlider factory function
+ */
 interface PanelSlider {
 	/** Fires when drag starts */
 	on (eventType: 'dragstart', cb: (d: Drag) => void): void
@@ -65,7 +90,8 @@ function PanelSlider ({
 	element,
 	numPanels, initialPanel = 0,
 	slideDuration = DEFAULT_SLIDE_DURATION,
-	dragThreshold, dragRatio
+	dragThreshold, dragRatio, devices,
+	terp = terpFn
 }: PanelSliderOptions): PanelSlider {
 	const callbacks: Callbacks = {}
 	// Will be computed on resize
@@ -79,6 +105,7 @@ function PanelSlider ({
 
 	const dragger = Dragger(element, {
 		dragThreshold, dragRatio,
+		devices,
 		ondragstart (dx) {
 			callbacks.dragstart && callbacks.dragstart({x: dx, v: 0})
 		},
@@ -144,7 +171,7 @@ function PanelSlider ({
 			const destX = -destPanel * panelWidth
 			const totalT = t - startT
 			const animT = Math.min(totalT, dur)
-			curPosX = terpIn(startX, destX, animT / dur)
+			curPosX = terp(startX, destX, animT / dur)
 			setX(element, curPosX)
 			callbacks.animate && callbacks.animate(-curPosX / panelWidth)
 			if (totalT < dur) {
@@ -158,6 +185,7 @@ function PanelSlider ({
 		requestAnimationFrame(loop)
 	}
 
+	/** Update our full width and panel width on resize */
 	function resize() {
 		const rc = element.getBoundingClientRect()
 		panelWidth = rc.width

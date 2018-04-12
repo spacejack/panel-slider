@@ -10,6 +10,12 @@ const DEFAULT_DRAG_THRESHOLD = 12
 const DEFAULT_DRAG_RATIO     = 1.5
 
 export interface DraggerOptions {
+	/** Specify drag threshold distance */
+	dragThreshold?: number
+	/** Specifiy minimum drag ratio */
+	dragRatio?: number
+	/** Devices to accept input from (default ['mouse', 'touch']) */
+	devices?: ('mouse' | 'touch')[]
 	/** Fires when dragThreshold exceeded and element is in 'dragging' state */
 	ondragstart?(dx: number): void
 	/** Fires for every move made while dragged */
@@ -22,10 +28,6 @@ export interface DraggerOptions {
 	ondevicepress?(e: MouseEvent | TouchEvent): void
 	/** Fires when input device released */
 	ondevicerelease?(e: MouseEvent | TouchEvent): void
-	/** Specify drag threshold distance */
-	dragThreshold?: number
-	/** Specifiy minimum drag ratio */
-	dragRatio?: number
 	/** Maximum left drag amount */
 	maxLeft?(): number
 	/** Maximum left drag amount */
@@ -42,6 +44,7 @@ function Dragger (
 		ondevicepress, ondevicerelease,
 		dragThreshold = DEFAULT_DRAG_THRESHOLD,
 		dragRatio = DEFAULT_DRAG_RATIO,
+		devices,
 		maxLeft, maxRight
 	}: DraggerOptions = {}
 ) {
@@ -178,8 +181,12 @@ function Dragger (
 		document.removeEventListener('scroll', onScroll, true)
 	}
 
-	el.addEventListener('mousedown', onMouseDown)
-	el.addEventListener('touchstart', onTouchStart)
+	if (!devices || devices.indexOf('mouse') >= 0) {
+		el.addEventListener('mousedown', onMouseDown)
+	}
+	if (!devices || devices.indexOf('touch') >= 0) {
+		el.addEventListener('touchstart', onTouchStart)
+	}
 
 	return {destroy}
 }

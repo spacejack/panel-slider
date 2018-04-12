@@ -29,12 +29,21 @@ interface PanelSliderOptions {
 	numPanels: number
 	/** Starting panel */
 	initialPanel?: number
-	/** Duration of slide animation (default 500ms) */
+	/** Duration of slide animation on release (default 500ms) */
 	slideDuration?: number
-	/** Horizontal drag distance threshold (default 12px) */
+	/** Horizontal distance threshold to initiate drag (default 12px) */
 	dragThreshold?: number
-	/** Required minimum horizontal:vertical ratio (default 1.5) */
+	/** Minimum required horizontal:vertical ratio to initiate drag (default 1.5) */
 	dragRatio?: number
+	/** Input devices to enable (default ['mouse', 'touch']) */
+	devices?: ('mouse' | 'touch')[]
+	/**
+	 * Optional custom animation interpolation function
+	 * @param x0 Start coordinate
+	 * @param x1 End coordinate
+	 * @param t Time (0..1)
+	 */
+	terp?(x0: number, x1: number, t: number): number
 }
 ```
 
