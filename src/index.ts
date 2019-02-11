@@ -3,19 +3,6 @@ import {clamp} from './math'
 import {setX} from './transform'
 import Dragger from './Dragger'
 
-/**
- * Default animation interpolation function
- * @param x0 Start coordinate
- * @param x1 End coordinate
- * @param t Time (0..1)
- */
-export function terpFn (x0: number, x1: number, t: number): number {
-	const r = (Math.PI / 2.0) * t
-	const s = Math.sin(r)
-	const si = 1.0 - s
-	return (x0 * si + x1 * s)
-}
-
 // tslint:disable unified-signatures
 
 /**
@@ -119,7 +106,7 @@ function PanelSlider ({
 	dragThreshold, dragRatio, devices,
 	on = {},
 	renderContent,
-	terp = terpFn
+	terp = PanelSlider.terp
 }: PanelSlider.Options): PanelSlider {
 	const emitters: PanelSlider.EventEmitters = {
 		dragstart: [],
@@ -438,6 +425,19 @@ function PanelSlider ({
 namespace PanelSlider {
 	export const DEFAULT_SLIDE_DURATION = 500
 
+	/**
+	 * Default animation interpolation function
+	 * @param x0 Start coordinate
+	 * @param x1 End coordinate
+	 * @param t Time (0..1)
+	 */
+	export function terp (x0: number, x1: number, t: number): number {
+		const r = (Math.PI / 2.0) * t
+		const s = Math.sin(r)
+		const si = 1.0 - s
+		return (x0 * si + x1 * s)
+	}
+
 	/** Lightweight PanelSlider Event type */
 	export class Event {
 		type: EventType
@@ -446,6 +446,7 @@ namespace PanelSlider {
 		}
 	}
 
+	/** Event emitted when current panel changes */
 	export class ChangeEvent extends Event {
 		panelId: number
 		constructor(type: 'panelchange', panelId: number) {
@@ -454,6 +455,7 @@ namespace PanelSlider {
 		}
 	}
 
+	/** Event emitted when current panel dragged */
 	export class DragEvent extends Event {
 		/** Horizontal amount dragged from start (in pixels) */
 		x: number
@@ -484,6 +486,7 @@ namespace PanelSlider {
 		}
 	}
 
+	/** Event Listener signature */
 	export type EventListener = (e: Event) => void
 
 	export interface EventListeners {
@@ -506,8 +509,10 @@ namespace PanelSlider {
 		panelchange: ((e: ChangeEvent) => void)[]
 	}
 
+	/** Event types */
 	export type EventType = keyof EventEmitters
 
+	/** PanelSlider creation options */
 	export interface Options {
 		/** The root element to use */
 		dom: HTMLElement
