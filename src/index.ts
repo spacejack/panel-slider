@@ -1,6 +1,6 @@
 import {range} from './array'
 import {clamp} from './math'
-import {setX} from './transform'
+import {setPos3d} from './transform'
 import Dragger from './Dragger'
 
 // tslint:disable unified-signatures
@@ -174,7 +174,7 @@ function PanelSlider ({
 					// Unless a redraw is forced
 					renderContent(panel.dom, i, isAnimating)
 				}
-				setX(panel.dom, curPosX + i * panelWidth)
+				setPos3d(panel.dom, curPosX + i * panelWidth)
 				keepPanels.push(panel)
 			} else {
 				ids.push(i)
@@ -190,7 +190,7 @@ function PanelSlider ({
 			// Need to render this
 			renderContent(panel.dom, i, isAnimating)
 			panel.index = i
-			setX(panel.dom, curPosX - i * panelWidth)
+			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels.push(panel)
 		}
 	}

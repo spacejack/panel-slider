@@ -39,10 +39,6 @@ export const transform = prefix ? prefix + '-transform' : 'transform'
 /**
  * Set position of element using 3d transform style
  */
-export function setX (el: HTMLElement, x: number) {
-	(el.style as any)[transform] = `translate3d(${x}px,0,0)`
-}
-
-export function setXY (el: HTMLElement, x: number, y: number) {
-	(el.style as any)[transform] = `translate3d(${x}px,${y}px,0)`
+export function setPos3d (el: HTMLElement, x: number, y = 0, z = 0) {
+	(el.style as any)[transform] = `translate3d(${x}px,${y}px,${z}px)`
 }
