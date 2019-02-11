@@ -2,10 +2,10 @@ import {pmod} from './math'
 
 const DEFAULT_SAMPLES = 4
 
-export interface Speedo {
-	start: (x: number, t: number) => void
-	addSample: (x: number, t: number) => void
-	getVel: () => number
+interface Speedo {
+	start(x: number, t: number): void
+	addSample(x: number, t: number): void
+	getVel(): number
 }
 
 interface Sample {
@@ -16,14 +16,15 @@ interface Sample {
 /**
  * Computes speed (delta x over time)
  */
-export default function createSpeedo (numSamples = DEFAULT_SAMPLES) : Speedo {
+function Speedo (numSamples = DEFAULT_SAMPLES) : Speedo {
+	const samples: Sample[] = []
 	let index = 0
 	let count = 0
-	let samples: Sample[] = new Array(numSamples)
 
-	for (let i = 0; i < numSamples; ++i) {
-		samples[i] = {x: 0, t: 0}
+	for (let index = 0; index < numSamples; ++index) {
+		samples.push({x: 0, t: 0})
 	}
+	index = 0
 
 	function start (x: number, t: number) {
 		index = 0
@@ -42,7 +43,9 @@ export default function createSpeedo (numSamples = DEFAULT_SAMPLES) : Speedo {
 	}
 
 	function getVel() {
-		if (count < 1) return 0
+		if (count < 1) {
+			return 0
+		}
 		const n = count > numSamples ? numSamples : count
 		const iLast = pmod(index - 1, numSamples)
 		const iFirst = pmod(index - n, numSamples)
@@ -57,3 +60,5 @@ export default function createSpeedo (numSamples = DEFAULT_SAMPLES) : Speedo {
 		getVel
 	}
 }
+
+export default Speedo

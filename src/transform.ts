@@ -4,17 +4,20 @@ function toLower (s: any) {
 	return !!s && typeof s === 'string' ? s.toLowerCase() : ''
 }
 
-export const prefix = (function () {
+export const prefix = (function() {
 	const t = 'translate3d(100px,20px,0px)' // the transform we'll use to test
 	const el = document.createElement('div') // Make a test element
 
 	//  Check support for current standard first
 	el.style.transform = t
 	let styleAttrLc = toLower(el.getAttribute('style'))
-	if (styleAttrLc.indexOf('transform') === 0) return '' // current, yay.
+	if (styleAttrLc.indexOf('transform') === 0) {
+		return '' // current, yay.
+	}
 
 	//  Try beta names
-	;(el.style as any).MozTransform = t // firefox
+	// tslint:disable align
+	(el.style as any).MozTransform = t // firefox
 	;(el.style as any).webkitTransform = t // webkit/chrome
 	;(el.style as any).msTransform = t // IE
 	styleAttrLc = toLower(el.getAttribute('style'))
