@@ -53,6 +53,7 @@ html, body {
 	position: absolute;
 	top: 0.25em;
 	right: 1.5em;
+	user-select: none;
 }
 
 .stats table {
