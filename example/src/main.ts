@@ -25,10 +25,11 @@ function renderPanelContent (title: string, texts: string[]) {
 	return div
 }
 
+// Create & configure a PanelSlider instance
 const slider = PanelSlider({
 	dom: document.querySelector('.panel-set') as HTMLElement,
-	totalPanels: 20,
-	visiblePanels: 1,
+	totalPanels: 20,  // # of total panels
+	visiblePanels: 1, // # of panels that fit on screen
 	renderContent: (dom, pid) => {
 		// Fetch content for this panel
 		const c = content.get(pid)
