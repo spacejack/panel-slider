@@ -1,5 +1,5 @@
 /**
- * Public API returned by PanelSlider factory function
+ * Allows a user to drag a set of panels horizontally across a viewport.
  */
 interface PanelSlider {
     /** Add a listener that fires when drag starts */
@@ -55,9 +55,12 @@ interface PanelSlider {
     destroy(): void;
 }
 /**
- * Drags an element horizontally between sections.
+ * Creates a PanelSlider instance.
  */
 declare function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel, slideDuration, dragThreshold, dragRatio, devices, on, renderContent, terp }: PanelSlider.Options): PanelSlider;
+/**
+ * PanelSlider static methods and properties.
+ */
 declare namespace PanelSlider {
     const DEFAULT_SLIDE_DURATION = 500;
     /**

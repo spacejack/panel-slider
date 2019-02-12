@@ -6,7 +6,7 @@ import Dragger from './Dragger'
 // tslint:disable unified-signatures
 
 /**
- * Public API returned by PanelSlider factory function
+ * Allows a user to drag a set of panels horizontally across a viewport.
  */
 interface PanelSlider {
 	/** Add a listener that fires when drag starts */
@@ -85,10 +85,10 @@ interface Panel {
 	// TODO: pixel value?
 }
 
-function Panel (index: number, widthPct: number): Panel {
+function Panel (index: number, widthPct: number, className = ''): Panel {
 	const xpct = index * widthPct
 	return {
-		dom: createPanelElement('panel', {
+		dom: createPanelElement(className, {
 			transform: `translate3d(${xpct}%,0,0)`
 		}),
 		index,
@@ -97,7 +97,7 @@ function Panel (index: number, widthPct: number): Panel {
 }
 
 /**
- * Drags an element horizontally between sections.
+ * Creates a PanelSlider instance.
  */
 function PanelSlider ({
 	dom,
@@ -124,13 +124,14 @@ function PanelSlider ({
 	}
 	const panelWidthPct = 100 / visiblePanels * 3
 	const panels = range(visiblePanels * 3).map(pid => Panel(
-		pid, panelWidthPct
+		pid, panelWidthPct, 'panel'
 	))
 	dom.innerHTML = ''
 	for (const p of panels) {
 		renderContent(p.dom, p.index)
 		dom.appendChild(p.dom)
 	}
+
 	// Will be computed on resize
 	let fullWidth = panels.length
 	let visibleWidth = visiblePanels
@@ -146,12 +147,11 @@ function PanelSlider ({
 		visibleWidth = panelWidth * visiblePanels
 		fullWidth = panelWidth * totalPanels
 		curPosX = -curPanel * panelWidth
-		//setX(dom, curPosX)
+		render()
 	}
 
-	function render (redrawAll?: boolean) {
+	function render (fast?: boolean, redrawAll?: boolean) {
 		// note that: curPosX = -curPanel * panelWidth
-		//setX(dom, curPosX)
 		const x = Math.abs(curPosX)
 		/** Inclusive start/end panel indexes */
 		const iStart = Math.floor(totalPanels * x / fullWidth)
@@ -159,9 +159,11 @@ function PanelSlider ({
 			Math.ceil(totalPanels * (x + panelWidth) / fullWidth),
 			totalPanels - 1
 		)
-		//console.log(`rendering ${iStart}...${iEnd}`)
+		if (!fast) {
+			console.log(`rendering panels ${iStart}-${iEnd}`)
+		}
 		/** Cached panels that are still valid */
-		const keepPanels: Panel[] = []
+		const keepPanels: {[id: number]: Panel} = Object.create(null)
 		/** ids of panels that were not cached */
 		const ids: number[] = []
 		// Render panels that are cached
@@ -172,26 +174,30 @@ function PanelSlider ({
 				// Already rendered, just set position
 				if (redrawAll) {
 					// Unless a redraw is forced
-					renderContent(panel.dom, i, isAnimating)
+					renderContent(panel.dom, i, fast)
 				}
 				setPos3d(panel.dom, curPosX + i * panelWidth)
-				keepPanels.push(panel)
+				//keepPanels.push(panel)
+				keepPanels[i] = panel
 			} else {
 				ids.push(i)
 			}
 		}
 		// Render panels that weren't cached
 		for (const i of ids) {
-			const panel = panels.find(p => keepPanels.indexOf(p) < 0)
+			const panel = panels.find(p => !keepPanels[p.index])
 			if (panel == null) {
 				console.warn('Could not find an available panel for id:', i)
 				continue
 			}
 			// Need to render this
-			renderContent(panel.dom, i, isAnimating)
-			panel.index = i
+			if (!fast) {
+				console.log(`updating panel: ${i}`)
+				panel.index = i
+			}
+			renderContent(panel.dom, i, fast)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
-			keepPanels.push(panel)
+			keepPanels[i] = panel
 		}
 	}
 
@@ -315,16 +321,13 @@ function PanelSlider ({
 			const totalT = t - startT
 			const animT = Math.min(totalT, dur)
 			curPosX = terp(startX, destX, animT / dur)
-			if (totalT >= dur) {
-				// Set this flag before render so it
-				// doesn't use fast mode when the anim is done.
-				isAnimating = false
-			}
-			render()
+			// Use a 'fast' render unless this is the last frame of the animation
+			const isLastFrame = totalT >= dur
+			render(!isLastFrame)
 			emit(new PanelSlider.AnimateEvent(
 				'animate', -curPosX / panelWidth
 			))
-			if (totalT < dur) {
+			if (!isLastFrame) {
 				requestAnimationFrame(loop)
 			} else {
 				finish()
@@ -422,6 +425,9 @@ function PanelSlider ({
 	}
 }
 
+/**
+ * PanelSlider static methods and properties.
+ */
 namespace PanelSlider {
 	export const DEFAULT_SLIDE_DURATION = 500
 

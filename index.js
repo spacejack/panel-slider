@@ -347,10 +347,11 @@ var __extends = (this && this.__extends) || (function () {
         }, style);
         return el;
     }
-    function Panel(index, widthPct) {
+    function Panel(index, widthPct, className) {
+        if (className === void 0) { className = ''; }
         var xpct = index * widthPct;
         return {
-            dom: createPanelElement('panel', {
+            dom: createPanelElement(className, {
                 transform: "translate3d(" + xpct + "%,0,0)"
             }),
             index: index,
@@ -358,7 +359,7 @@ var __extends = (this && this.__extends) || (function () {
         };
     }
     /**
-     * Drags an element horizontally between sections.
+     * Creates a PanelSlider instance.
      */
     function PanelSlider(_a) {
         var dom = _a.dom, totalPanels = _a.totalPanels, visiblePanels = _a.visiblePanels, _b = _a.initialPanel, initialPanel = _b === void 0 ? 0 : _b, _c = _a.slideDuration, slideDuration = _c === void 0 ? PanelSlider.DEFAULT_SLIDE_DURATION : _c, dragThreshold = _a.dragThreshold, dragRatio = _a.dragRatio, devices = _a.devices, _d = _a.on, on = _d === void 0 ? {} : _d, renderContent = _a.renderContent, _e = _a.terp, terp = _e === void 0 ? PanelSlider.terp : _e;
@@ -378,7 +379,7 @@ var __extends = (this && this.__extends) || (function () {
             }
         }
         var panelWidthPct = 100 / visiblePanels * 3;
-        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel(pid, panelWidthPct); });
+        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel(pid, panelWidthPct, 'panel'); });
         dom.innerHTML = '';
         for (var _g = 0, panels_1 = panels; _g < panels_1.length; _g++) {
             var p = panels_1[_g];
@@ -399,18 +400,19 @@ var __extends = (this && this.__extends) || (function () {
             visibleWidth = panelWidth * visiblePanels;
             fullWidth = panelWidth * totalPanels;
             curPosX = -curPanel * panelWidth;
-            //setX(dom, curPosX)
+            render();
         }
-        function render(redrawAll) {
+        function render(fast, redrawAll) {
             // note that: curPosX = -curPanel * panelWidth
-            //setX(dom, curPosX)
             var x = Math.abs(curPosX);
             /** Inclusive start/end panel indexes */
             var iStart = Math.floor(totalPanels * x / fullWidth);
             var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
-            //console.log(`rendering ${iStart}...${iEnd}`)
+            if (!fast) {
+                console.log("rendering panels " + iStart + "-" + iEnd);
+            }
             /** Cached panels that are still valid */
-            var keepPanels = [];
+            var keepPanels = Object.create(null);
             /** ids of panels that were not cached */
             var ids = [];
             var _loop_1 = function (i) {
@@ -420,10 +422,11 @@ var __extends = (this && this.__extends) || (function () {
                     // Already rendered, just set position
                     if (redrawAll) {
                         // Unless a redraw is forced
-                        renderContent(panel.dom, i, isAnimating);
+                        renderContent(panel.dom, i, fast);
                     }
-                    transform_1.setX(panel.dom, curPosX + i * panelWidth);
-                    keepPanels.push(panel);
+                    transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
+                    //keepPanels.push(panel)
+                    keepPanels[i] = panel;
                 }
                 else {
                     ids.push(i);
@@ -436,16 +439,19 @@ var __extends = (this && this.__extends) || (function () {
             // Render panels that weren't cached
             for (var _i = 0, ids_1 = ids; _i < ids_1.length; _i++) {
                 var i = ids_1[_i];
-                var panel = panels.find(function (p) { return keepPanels.indexOf(p) < 0; });
+                var panel = panels.find(function (p) { return !keepPanels[p.index]; });
                 if (panel == null) {
                     console.warn('Could not find an available panel for id:', i);
                     continue;
                 }
                 // Need to render this
-                renderContent(panel.dom, i, isAnimating);
-                panel.index = i;
-                transform_1.setX(panel.dom, curPosX - i * panelWidth);
-                keepPanels.push(panel);
+                if (!fast) {
+                    console.log("updating panel: " + i);
+                    panel.index = i;
+                }
+                renderContent(panel.dom, i, fast);
+                transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
+                keepPanels[i] = panel;
             }
         }
         /** Application wants to re-render this panel (or all panels) content */
@@ -553,14 +559,11 @@ var __extends = (this && this.__extends) || (function () {
                 var totalT = t - startT;
                 var animT = Math.min(totalT, dur);
                 curPosX = terp(startX, destX, animT / dur);
-                if (totalT >= dur) {
-                    // Set this flag before render so it
-                    // doesn't use fast mode when the anim is done.
-                    isAnimating = false;
-                }
-                render();
+                // Use a 'fast' render unless this is the last frame of the animation
+                var isLastFrame = totalT >= dur;
+                render(!isLastFrame);
                 emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
-                if (totalT < dur) {
+                if (!isLastFrame) {
                     requestAnimationFrame(loop);
                 }
                 else {
@@ -644,6 +647,9 @@ var __extends = (this && this.__extends) || (function () {
             destroy: destroy,
         };
     }
+    /**
+     * PanelSlider static methods and properties.
+     */
     (function (PanelSlider) {
         PanelSlider.DEFAULT_SLIDE_DURATION = 500;
         /**
@@ -791,14 +797,12 @@ var __extends = (this && this.__extends) || (function () {
     /**
      * Set position of element using 3d transform style
      */
-    function setX(el, x) {
-        el.style[exports.transform] = "translate3d(" + x + "px,0,0)";
+    function setPos3d(el, x, y, z) {
+        if (y === void 0) { y = 0; }
+        if (z === void 0) { z = 0; }
+        el.style[exports.transform] = "translate3d(" + x + "px," + y + "px," + z + "px)";
     }
-    exports.setX = setX;
-    function setXY(el, x, y) {
-        el.style[exports.transform] = "translate3d(" + x + "px," + y + "px,0)";
-    }
-    exports.setXY = setXY;
+    exports.setPos3d = setPos3d;
 });
 
 },{}]},{},[4])(4)
