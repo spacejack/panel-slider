@@ -71,30 +71,30 @@ const slider = PanelSlider({
 	// pid  - the panel index
 	// fast - a boolean indicating if this is a 'fast' (animating)
 	//        frame, in which case we should skip async/heavy tasks.
-	renderContent: (dom, pid, fast) => {
+	renderContent: (panel, fast) => {
 		// Try to get 'ready' content for this panel
-		let c = content.peek(pid)
+		let c = content.peek(panel.index)
 		// If it's ready to use, we got an array of strings
 		if (Array.isArray(c)) {
 			// Content is available now - render it:
-			dom.innerHTML = ''
-			dom.appendChild(renderPanelContent(pid, c))
+			panel.dom.innerHTML = ''
+			panel.dom.appendChild(renderPanelContent(panel.index, c))
 			// Indicate did render
 			return Panel.RENDERED
 		} else if (!fast) {
 			// Content not available yet - fetch
-			c = c || Promise.resolve(content.get(pid))
+			c = c || Promise.resolve(content.get(panel.index))
 			// Request PanelSlider to re-render this panel when the content promise resolves.
 			c.then(() => {
-				slider.renderContent(pid)
+				slider.renderContent(panel.index)
 			})
-			dom.innerHTML = '<p>(loading)</p>'
+			panel.dom.innerHTML = '<p>(loading)</p>'
 			return Panel.FETCHING
 		} else {
 			// Content not available but this is a 'fast' render so
 			// don't bother fetching anything.
 			// We could render some 'loading' or low-res content here...
-			dom.innerHTML = '<p>---</p>'
+			panel.dom.innerHTML = '<p>---</p>'
 			return Panel.PRERENDERED
 		}
 	},

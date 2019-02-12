@@ -160,7 +160,7 @@ declare namespace PanelSlider {
         /** Initial event listeners */
         on?: EventListeners;
         /** Application function to render a panel */
-        renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): Panel.State;
+        renderContent(panel: Panel, fast?: boolean): Panel.State;
         /**
          * Optional custom animation interpolation function
          * @param x0 Start coordinate

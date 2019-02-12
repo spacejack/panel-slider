@@ -137,7 +137,7 @@ function PanelSlider ({
 	))
 	dom.innerHTML = ''
 	for (const p of panels) {
-		p.state = renderContent(p.dom, p.index)
+		p.state = renderContent(p)
 		dom.appendChild(p.dom)
 	}
 
@@ -185,7 +185,7 @@ function PanelSlider ({
 			const panel = panels.find(p => p.index === i)
 			if (panel) {
 				if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
-					panel.state = renderContent(panel.dom, i, fast)
+					panel.state = renderContent(panel, fast)
 				}
 				setPos3d(panel.dom, curPosX + i * panelWidth)
 				keepPanels[i] = panel
@@ -205,8 +205,7 @@ function PanelSlider ({
 				console.log(`updating panel: ${i}`)
 			}
 			panel.index = i
-			panel.state = Panel.DIRTY
-			panel.state = renderContent(panel.dom, i, fast)
+			panel.state = renderContent(panel, fast)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels[i] = panel
 		}
@@ -217,11 +216,11 @@ function PanelSlider ({
 		if (pid != null) {
 			const panel = panels.find(p => p.index === pid)
 			if (!panel) return false
-			panel.state = renderContent(panel.dom, panel.index)
+			panel.state = renderContent(panel)
 			return true
 		}
 		for (const panel of panels) {
-			panel.state = renderContent(panel.dom, panel.index)
+			panel.state = renderContent(panel)
 		}
 		return true
 	}
@@ -552,7 +551,7 @@ namespace PanelSlider {
 		/** Initial event listeners */
 		on?: EventListeners
 		/** Application function to render a panel */
-		renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): Panel.State
+		renderContent(panel: Panel, fast?: boolean): Panel.State
 		/**
 		 * Optional custom animation interpolation function
 		 * @param x0 Start coordinate
