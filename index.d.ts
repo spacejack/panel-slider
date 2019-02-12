@@ -1,3 +1,4 @@
+import Panel from './Panel';
 /**
  * Allows a user to drag a set of panels horizontally across a viewport.
  */
@@ -33,7 +34,7 @@ interface PanelSlider {
     /** Gets the current panel */
     getPanel(): number;
     /** Sets the current panel - animates to position */
-    setPanel(panelId: number, done?: (panelId: number) => void): void;
+    setPanel(panelId: number): Promise<number>;
     /** Sets the current panel immediately, no animation */
     setPanelImmediate(panelId: number): void;
     /** Gets the current root element & panel sizes */
@@ -53,23 +54,6 @@ interface PanelSlider {
     renderContent(panelId: number): boolean;
     /** Destroy & cleanup resources */
     destroy(): void;
-}
-export interface Panel {
-    /** This panel always references the same dom node */
-    readonly dom: HTMLElement;
-    /** Current panel index that renders to this panel */
-    index: number;
-    /** Rendered state of panel */
-    state: Panel.State;
-}
-export declare function Panel(index: number, widthPct: number, state?: Panel.State, className?: string): Panel;
-export declare namespace Panel {
-    type State = 0 | 1 | 2 | 3 | -1;
-    const EMPTY: State;
-    const PRERENDERED: State;
-    const FETCHING: State;
-    const RENDERED: State;
-    const DIRTY: State;
 }
 /**
  * Creates a PanelSlider instance.
@@ -139,9 +123,12 @@ declare namespace PanelSlider {
     type EventType = keyof EventEmitters;
     /** PanelSlider creation options */
     interface Options {
-        /** The root element to use */
+        /**
+         * The root DOM element to use. It should be empty and
+         * panel child elements will be added to it.
+         */
         dom: HTMLElement;
-        /** Total number of panels */
+        /** Total number of panels with content */
         totalPanels: number;
         /** Total number of visible panels that fit across the width of panel-set container */
         visiblePanels: number;
@@ -166,6 +153,7 @@ declare namespace PanelSlider {
          * @param x0 Start coordinate
          * @param x1 End coordinate
          * @param t Time (0..1)
+         * @returns Interpolated value between x0 (t=0) and x1 (t=1)
          */
         terp?(x0: number, x1: number, t: number): number;
     }

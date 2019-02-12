@@ -212,7 +212,62 @@ var __extends = (this && this.__extends) || (function () {
     }
 });
 
-},{"./Speedo":2}],2:[function(require,module,exports){
+},{"./Speedo":3}],2:[function(require,module,exports){
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    /** Creates a Panel instance */
+    function Panel(index, widthPct, state, className) {
+        if (state === void 0) { state = Panel.EMPTY; }
+        if (className === void 0) { className = ''; }
+        var xpct = index * widthPct;
+        return {
+            dom: createPanelElement(className, {
+                transform: "translate3d(" + xpct + "%,0,0)"
+            }),
+            index: index,
+            state: state
+        };
+    }
+    /** Additional Panel statics */
+    (function (Panel) {
+        Panel.EMPTY = 0;
+        Panel.PRERENDERED = 1;
+        Panel.FETCHING = 2;
+        Panel.RENDERED = 3;
+        Panel.DIRTY = -1;
+    })(Panel || (Panel = {}));
+    exports.default = Panel;
+    /** Creates a Panel DOM node */
+    function createPanelElement(className, style) {
+        if (className === void 0) { className = ''; }
+        if (style === void 0) { style = {}; }
+        var el = document.createElement('div');
+        if (className) {
+            el.className = className;
+        }
+        Object.assign(el.style, {
+            position: 'absolute',
+            left: '0',
+            top: '0',
+            width: '100%',
+            height: '100%',
+            transform: 'translate3d(0,0,0)'
+        }, style);
+        return el;
+    }
+    exports.createPanelElement = createPanelElement;
+});
+
+},{}],3:[function(require,module,exports){
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -272,7 +327,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.default = Speedo;
 });
 
-},{"./math":5}],3:[function(require,module,exports){
+},{"./math":6}],4:[function(require,module,exports){
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -301,7 +356,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.range = range;
 });
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -321,7 +376,7 @@ var __extends = (this && this.__extends) || (function () {
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "./array", "./math", "./transform", "./Dragger"], factory);
+        define(["require", "exports", "./array", "./math", "./transform", "./Dragger", "./Panel"], factory);
     }
 })(function (require, exports) {
     "use strict";
@@ -330,43 +385,7 @@ var __extends = (this && this.__extends) || (function () {
     var math_1 = require("./math");
     var transform_1 = require("./transform");
     var Dragger_1 = require("./Dragger");
-    function createPanelElement(className, style) {
-        if (className === void 0) { className = ''; }
-        if (style === void 0) { style = {}; }
-        var el = document.createElement('div');
-        if (className) {
-            el.className = className;
-        }
-        Object.assign(el.style, {
-            position: 'absolute',
-            left: '0',
-            top: '0',
-            width: '100%',
-            height: '100%',
-            transform: 'translate3d(0,0,0)'
-        }, style);
-        return el;
-    }
-    function Panel(index, widthPct, state, className) {
-        if (state === void 0) { state = Panel.EMPTY; }
-        if (className === void 0) { className = ''; }
-        var xpct = index * widthPct;
-        return {
-            dom: createPanelElement(className, {
-                transform: "translate3d(" + xpct + "%,0,0)"
-            }),
-            index: index,
-            state: state
-        };
-    }
-    exports.Panel = Panel;
-    (function (Panel) {
-        Panel.EMPTY = 0;
-        Panel.PRERENDERED = 1;
-        Panel.FETCHING = 2;
-        Panel.RENDERED = 3;
-        Panel.DIRTY = -1;
-    })(Panel = exports.Panel || (exports.Panel = {}));
+    var Panel_1 = require("./Panel");
     /**
      * Creates a PanelSlider instance.
      */
@@ -388,7 +407,7 @@ var __extends = (this && this.__extends) || (function () {
             }
         }
         var panelWidthPct = 100 / visiblePanels * 3;
-        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel(pid, panelWidthPct, Panel.EMPTY, panelClassName); });
+        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName); });
         dom.innerHTML = '';
         for (var _h = 0, panels_1 = panels; _h < panels_1.length; _h++) {
             var p = panels_1[_h];
@@ -442,7 +461,7 @@ var __extends = (this && this.__extends) || (function () {
                 // Find a bound panel
                 var panel = panels.find(function (p) { return p.index === i; });
                 if (panel) {
-                    if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
+                    if (panel.state < Panel_1.default.PRERENDERED || (!fast && panel.state < Panel_1.default.FETCHING)) {
                         panel.state = renderContent(panel, fast);
                     }
                     transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
@@ -620,11 +639,18 @@ var __extends = (this && this.__extends) || (function () {
         function getPanel() {
             return curPanel;
         }
-        /** Sets current panel index, animates to position */
-        function setPanel(panelId, done) {
-            if (panelId === curPanel)
-                return;
-            animateTo(panelId, slideDuration, done);
+        /**
+         * Animates to position and updates panel index.
+         * The animation could be redirected or aborted,
+         * so the result index may not be what was
+         * requested or the promise may not resolve.
+         */
+        function setPanel(panelId) {
+            return panelId === curPanel
+                ? Promise.resolve(panelId)
+                : new Promise(function (r) {
+                    animateTo(panelId, slideDuration, r);
+                });
         }
         /** Sets the current panel index immediately, no animation */
         function setPanelImmediate(panelId) {
@@ -742,7 +768,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.default = PanelSlider;
 });
 
-},{"./Dragger":1,"./array":3,"./math":5,"./transform":6}],5:[function(require,module,exports){
+},{"./Dragger":1,"./Panel":2,"./array":4,"./math":6,"./transform":7}],6:[function(require,module,exports){
 // Math utils
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
@@ -767,7 +793,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.pmod = pmod;
 });
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // Determine style names (if prefix required)
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
@@ -825,5 +851,5 @@ var __extends = (this && this.__extends) || (function () {
     exports.setPos3d = setPos3d;
 });
 
-},{}]},{},[4])(4)
+},{}]},{},[5])(5)
 });
