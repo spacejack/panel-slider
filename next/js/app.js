@@ -100,32 +100,32 @@ const slider = index_1.default({
     // pid  - the panel index
     // fast - a boolean indicating if this is a 'fast' (animating)
     //        frame, in which case we should skip async/heavy tasks.
-    renderContent: (dom, pid, fast) => {
+    renderContent: (panel, fast) => {
         // Try to get 'ready' content for this panel
-        let c = content.peek(pid);
+        let c = content.peek(panel.index);
         // If it's ready to use, we got an array of strings
         if (Array.isArray(c)) {
             // Content is available now - render it:
-            dom.innerHTML = '';
-            dom.appendChild(renderPanelContent(pid, c));
+            panel.dom.innerHTML = '';
+            panel.dom.appendChild(renderPanelContent(panel.index, c));
             // Indicate did render
             return index_1.Panel.RENDERED;
         }
         else if (!fast) {
             // Content not available yet - fetch
-            c = c || Promise.resolve(content.get(pid));
+            c = c || Promise.resolve(content.get(panel.index));
             // Request PanelSlider to re-render this panel when the content promise resolves.
             c.then(() => {
-                slider.renderContent(pid);
+                slider.renderContent(panel.index);
             });
-            dom.innerHTML = '<p>(loading)</p>';
+            panel.dom.innerHTML = '<p>(loading)</p>';
             return index_1.Panel.FETCHING;
         }
         else {
             // Content not available but this is a 'fast' render so
             // don't bother fetching anything.
             // We could render some 'loading' or low-res content here...
-            dom.innerHTML = '<p>---</p>';
+            panel.dom.innerHTML = '<p>---</p>';
             return index_1.Panel.PRERENDERED;
         }
     },
@@ -459,7 +459,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
     const panels = array_1.range(visiblePanels * 3).map(pid => Panel(pid, panelWidthPct, Panel.EMPTY, panelClassName));
     dom.innerHTML = '';
     for (const p of panels) {
-        p.state = renderContent(p.dom, p.index);
+        p.state = renderContent(p);
         dom.appendChild(p.dom);
     }
     // Will be computed on resize
@@ -486,10 +486,20 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
         // note that: curPosX = -curPanel * panelWidth
         const x = Math.abs(curPosX);
         /** Inclusive start/end panel indexes */
-        const iStart = Math.floor(totalPanels * x / fullWidth);
-        const iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
+        let iStart = Math.floor(totalPanels * x / fullWidth);
+        let iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
         if (!fast) {
-            console.log(`rendering panels ${iStart}-${iEnd}`);
+            const n = iEnd - iStart + 1;
+            if (n < panels.length) {
+                // Not a fast render, so render something to the extra panel
+                // TODO: Better algo to select panels to render...
+                if (iStart > 0) {
+                    iStart -= 1; // render 1 extra to the left
+                }
+                else {
+                    iEnd = Math.min(iEnd + 1, totalPanels - 1);
+                }
+            }
         }
         /** Cached panels that are still valid */
         const keepPanels = Object.create(null);
@@ -501,7 +511,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
             const panel = panels.find(p => p.index === i);
             if (panel) {
                 if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
-                    panel.state = renderContent(panel.dom, i, fast);
+                    panel.state = renderContent(panel, fast);
                 }
                 transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
                 keepPanels[i] = panel;
@@ -522,8 +532,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
                 console.log(`updating panel: ${i}`);
             }
             panel.index = i;
-            panel.state = Panel.DIRTY;
-            panel.state = renderContent(panel.dom, i, fast);
+            panel.state = renderContent(panel, fast);
             transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
             keepPanels[i] = panel;
         }
@@ -534,11 +543,11 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
             const panel = panels.find(p => p.index === pid);
             if (!panel)
                 return false;
-            panel.state = renderContent(panel.dom, panel.index);
+            panel.state = renderContent(panel);
             return true;
         }
         for (const panel of panels) {
-            panel.state = renderContent(panel.dom, panel.index);
+            panel.state = renderContent(panel);
         }
         return true;
     }
