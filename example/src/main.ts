@@ -13,6 +13,7 @@ const elPos = $e('panelPos')
 
 const NUM_PANELS = 100
 
+/** Create a page button element */
 function createPageButton (panelId: number) {
 	const b = document.createElement('button')
 	b.type = 'button'
@@ -26,6 +27,7 @@ function createPageButton (panelId: number) {
 	return b
 }
 
+/** Build some quick nav links to jump across many panels */
 function buildNav() {
 	const nav = document.querySelector('nav')!
 	for (let i = 0; i < NUM_PANELS; i += 10) {
@@ -58,7 +60,9 @@ function renderPanelContent (pid: number, texts: string[]) {
 
 buildNav()
 
+//
 // Create & configure a PanelSlider instance
+//
 const slider = PanelSlider({
 	dom: document.querySelector('.panel-set') as HTMLElement,
 	totalPanels: NUM_PANELS,  // # of total panels
@@ -67,10 +71,9 @@ const slider = PanelSlider({
 	panelClassName: 'panel',
 	// Callback that gets invoked when the PanelSlider needs
 	// to render this panel.
-	// dom  - the element we render children to
-	// pid  - the panel index
-	// fast - a boolean indicating if this is a 'fast' (animating)
-	//        frame, in which case we should skip async/heavy tasks.
+	// panel - the Panel we're rendering
+	// fast  - a boolean indicating if this is a 'fast' (animating)
+	//         frame, in which case we should skip async/heavy tasks.
 	renderContent: (panel, fast) => {
 		// Try to get 'ready' content for this panel
 		let c = content.peek(panel.index)
@@ -84,10 +87,13 @@ const slider = PanelSlider({
 		} else if (!fast) {
 			// Content not available yet - fetch
 			c = c || Promise.resolve(content.get(panel.index))
-			// Request PanelSlider to re-render this panel when the content promise resolves.
 			c.then(() => {
+				// Request PanelSlider to re-render this panel when the content promise
+				// resolves. It's possible this panel is no longer bound to this ID by
+				// then so the render request may be ignored.
 				slider.renderContent(panel.index)
 			})
+			// Do a fast render while waiting
 			panel.dom.innerHTML = '<p>(loading)</p>'
 			return Panel.FETCHING
 		} else {
