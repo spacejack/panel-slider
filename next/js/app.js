@@ -36,6 +36,7 @@ exports.get = get;
 },{}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Panel_1 = require("../../src/Panel");
 const index_1 = require("../../src/index");
 const content = require("./content");
 /** getElementById helper */
@@ -47,18 +48,23 @@ const elId = $e('panelId');
 /** Element to display live panel position */
 const elPos = $e('panelPos');
 const NUM_PANELS = 100;
+/** Create a page button element */
 function createPageButton(panelId) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'btn-pg';
     b.textContent = String(panelId);
     b.addEventListener('click', () => {
-        slider.setPanel(panelId, pid => {
+        // Start fetching the destination panel content
+        content.get(panelId);
+        // Send the PanelSlider there
+        slider.setPanel(panelId).then(pid => {
             elId.textContent = String(pid);
         });
     });
     return b;
 }
+/** Build some quick nav links to jump across many panels */
 function buildNav() {
     const nav = document.querySelector('nav');
     for (let i = 0; i < NUM_PANELS; i += 10) {
@@ -86,20 +92,40 @@ function renderPanelContent(pid, texts) {
     }
     return div;
 }
+function preRenderPanelContent(pid, text) {
+    const div = document.createElement('div');
+    const h2 = document.createElement('h2');
+    h2.textContent = 'Panel ' + pid;
+    div.appendChild(h2);
+    const img = document.createElement('div');
+    img.style.width = '300px';
+    img.style.height = '200px';
+    img.style.display = 'inline-block';
+    img.style.backgroundColor = '#DDD';
+    let p = document.createElement('p');
+    p.appendChild(img);
+    div.appendChild(p);
+    p = document.createElement('p');
+    p.style.fontStyle = 'italic';
+    p.textContent = text;
+    div.appendChild(p);
+    return div;
+}
 buildNav();
+//
 // Create & configure a PanelSlider instance
+//
 const slider = index_1.default({
     dom: document.querySelector('.panel-set'),
     totalPanels: NUM_PANELS,
     visiblePanels: 1,
-    slideDuration: 275,
+    slideDuration: 400,
     panelClassName: 'panel',
     // Callback that gets invoked when the PanelSlider needs
     // to render this panel.
-    // dom  - the element we render children to
-    // pid  - the panel index
-    // fast - a boolean indicating if this is a 'fast' (animating)
-    //        frame, in which case we should skip async/heavy tasks.
+    // panel - the Panel we're rendering
+    // fast  - a boolean indicating if this is a 'fast' (animating)
+    //         frame, in which case we should skip async/heavy tasks.
     renderContent: (panel, fast) => {
         // Try to get 'ready' content for this panel
         let c = content.peek(panel.index);
@@ -109,24 +135,29 @@ const slider = index_1.default({
             panel.dom.innerHTML = '';
             panel.dom.appendChild(renderPanelContent(panel.index, c));
             // Indicate did render
-            return index_1.Panel.RENDERED;
+            return Panel_1.default.RENDERED;
         }
         else if (!fast) {
             // Content not available yet - fetch
             c = c || Promise.resolve(content.get(panel.index));
-            // Request PanelSlider to re-render this panel when the content promise resolves.
             c.then(() => {
+                // Request PanelSlider to re-render this panel when the content promise
+                // resolves. It's possible this panel is no longer bound to this ID by
+                // then so the render request may be ignored.
                 slider.renderContent(panel.index);
             });
-            panel.dom.innerHTML = '<p>(loading)</p>';
-            return index_1.Panel.FETCHING;
+            // Do a fast render while waiting
+            panel.dom.innerHTML = '';
+            panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'));
+            return Panel_1.default.FETCHING;
         }
         else {
             // Content not available but this is a 'fast' render so
             // don't bother fetching anything.
             // We could render some 'loading' or low-res content here...
-            panel.dom.innerHTML = '<p>---</p>';
-            return index_1.Panel.PRERENDERED;
+            panel.dom.innerHTML = '';
+            panel.dom.appendChild(preRenderPanelContent(panel.index, '...'));
+            return Panel_1.default.PRERENDERED;
         }
     },
     on: {
@@ -143,7 +174,7 @@ const slider = index_1.default({
 // To cleanup:
 // slider.destroy()
 
-},{"../../src/index":6,"./content":1}],3:[function(require,module,exports){
+},{"../../src/Panel":4,"../../src/index":7,"./content":1}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Speedo_1 = require("./Speedo");
@@ -329,7 +360,48 @@ function applyIOSHack() {
     iOSHackApplied = true;
 }
 
-},{"./Speedo":4}],4:[function(require,module,exports){
+},{"./Speedo":5}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+/** Creates a Panel instance */
+function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
+    const xpct = index * widthPct;
+    return {
+        dom: createPanelElement(className, {
+            transform: `translate3d(${xpct}%,0,0)`
+        }),
+        index,
+        state
+    };
+}
+/** Additional Panel statics */
+(function (Panel) {
+    Panel.EMPTY = 0;
+    Panel.PRERENDERED = 1;
+    Panel.FETCHING = 2;
+    Panel.RENDERED = 3;
+    Panel.DIRTY = -1;
+})(Panel || (Panel = {}));
+exports.default = Panel;
+/** Creates a Panel DOM node */
+function createPanelElement(className = '', style = {}) {
+    const el = document.createElement('div');
+    if (className) {
+        el.className = className;
+    }
+    Object.assign(el.style, {
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        width: '100%',
+        height: '100%',
+        transform: 'translate3d(0,0,0)'
+    }, style);
+    return el;
+}
+exports.createPanelElement = createPanelElement;
+
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("./math");
@@ -378,7 +450,7 @@ function Speedo(numSamples = DEFAULT_SAMPLES) {
 }
 exports.default = Speedo;
 
-},{"./math":7}],5:[function(require,module,exports){
+},{"./math":8}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** Generate an array sequence of numbers from start up to but not including end incrementing by step */
@@ -397,46 +469,14 @@ function range(start, end, step) {
 }
 exports.range = range;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const array_1 = require("./array");
 const math_1 = require("./math");
 const transform_1 = require("./transform");
 const Dragger_1 = require("./Dragger");
-function createPanelElement(className = '', style = {}) {
-    const el = document.createElement('div');
-    if (className) {
-        el.className = className;
-    }
-    Object.assign(el.style, {
-        position: 'absolute',
-        left: '0',
-        top: '0',
-        width: '100%',
-        height: '100%',
-        transform: 'translate3d(0,0,0)'
-    }, style);
-    return el;
-}
-function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
-    const xpct = index * widthPct;
-    return {
-        dom: createPanelElement(className, {
-            transform: `translate3d(${xpct}%,0,0)`
-        }),
-        index,
-        state
-    };
-}
-exports.Panel = Panel;
-(function (Panel) {
-    Panel.EMPTY = 0;
-    Panel.PRERENDERED = 1;
-    Panel.FETCHING = 2;
-    Panel.RENDERED = 3;
-    Panel.DIRTY = -1;
-})(Panel = exports.Panel || (exports.Panel = {}));
+const Panel_1 = require("./Panel");
 /**
  * Creates a PanelSlider instance.
  */
@@ -456,7 +496,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
         }
     }
     const panelWidthPct = 100 / visiblePanels * 3;
-    const panels = array_1.range(visiblePanels * 3).map(pid => Panel(pid, panelWidthPct, Panel.EMPTY, panelClassName));
+    const panels = array_1.range(visiblePanels * 3).map(pid => Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName));
     dom.innerHTML = '';
     for (const p of panels) {
         p.state = renderContent(p);
@@ -510,7 +550,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
             // Find a bound panel
             const panel = panels.find(p => p.index === i);
             if (panel) {
-                if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
+                if (panel.state < Panel_1.default.PRERENDERED || (!fast && panel.state < Panel_1.default.FETCHING)) {
                     panel.state = renderContent(panel, fast);
                 }
                 transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
@@ -680,11 +720,18 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
     function getPanel() {
         return curPanel;
     }
-    /** Sets current panel index, animates to position */
-    function setPanel(panelId, done) {
-        if (panelId === curPanel)
-            return;
-        animateTo(panelId, slideDuration, done);
+    /**
+     * Animates to position and updates panel index.
+     * The animation could be redirected or aborted,
+     * so the result index may not be what was
+     * requested or the promise may not resolve.
+     */
+    function setPanel(panelId) {
+        return panelId === curPanel
+            ? Promise.resolve(panelId)
+            : new Promise(r => {
+                animateTo(panelId, slideDuration, r);
+            });
     }
     /** Sets the current panel index immediately, no animation */
     function setPanelImmediate(panelId) {
@@ -788,7 +835,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;
 
-},{"./Dragger":3,"./array":5,"./math":7,"./transform":8}],7:[function(require,module,exports){
+},{"./Dragger":3,"./Panel":4,"./array":6,"./math":8,"./transform":9}],8:[function(require,module,exports){
 "use strict";
 // Math utils
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -803,7 +850,7 @@ function pmod(n, m) {
 }
 exports.pmod = pmod;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 // Determine style names (if prefix required)
 Object.defineProperty(exports, "__esModule", { value: true });
