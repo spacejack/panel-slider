@@ -422,7 +422,17 @@ var __extends = (this && this.__extends) || (function () {
             var iStart = Math.floor(totalPanels * x / fullWidth);
             var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
             if (!fast) {
-                console.log("rendering panels " + iStart + "-" + iEnd);
+                var n = iEnd - iStart + 1;
+                if (n < panels.length) {
+                    // Not a fast render, so render something to the extra panel
+                    // TODO: Better algo to select panels to render...
+                    if (iStart > 0) {
+                        iStart -= 1; // render 1 extra to the left
+                    }
+                    else {
+                        iEnd = Math.min(iEnd + 1, totalPanels - 1);
+                    }
+                }
             }
             /** Cached panels that are still valid */
             var keepPanels = Object.create(null);
