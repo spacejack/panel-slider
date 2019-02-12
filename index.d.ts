@@ -54,10 +54,27 @@ interface PanelSlider {
     /** Destroy & cleanup resources */
     destroy(): void;
 }
+export interface Panel {
+    /** This panel always references the same dom node */
+    readonly dom: HTMLElement;
+    /** Current panel index that renders to this panel */
+    index: number;
+    /** Rendered state of panel */
+    state: Panel.State;
+}
+export declare function Panel(index: number, widthPct: number, state?: Panel.State, className?: string): Panel;
+export declare namespace Panel {
+    type State = 0 | 1 | 2 | 3 | -1;
+    const EMPTY: State;
+    const PRERENDERED: State;
+    const FETCHING: State;
+    const RENDERED: State;
+    const DIRTY: State;
+}
 /**
  * Creates a PanelSlider instance.
  */
-declare function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel, slideDuration, dragThreshold, dragRatio, devices, on, renderContent, terp }: PanelSlider.Options): PanelSlider;
+declare function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel, slideDuration, dragThreshold, dragRatio, devices, panelClassName, on, renderContent, terp }: PanelSlider.Options): PanelSlider;
 /**
  * PanelSlider static methods and properties.
  */
@@ -138,10 +155,12 @@ declare namespace PanelSlider {
         dragRatio?: number;
         /** Input devices to enable (default ['mouse', 'touch']) */
         devices?: ('mouse' | 'touch')[];
+        /** CSS className to use for the panel elements */
+        panelClassName?: string;
         /** Initial event listeners */
         on?: EventListeners;
         /** Application function to render a panel */
-        renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): void;
+        renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): Panel.State;
         /**
          * Optional custom animation interpolation function
          * @param x0 Start coordinate

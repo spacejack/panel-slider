@@ -347,7 +347,8 @@ var __extends = (this && this.__extends) || (function () {
         }, style);
         return el;
     }
-    function Panel(index, widthPct, className) {
+    function Panel(index, widthPct, state, className) {
+        if (state === void 0) { state = Panel.EMPTY; }
         if (className === void 0) { className = ''; }
         var xpct = index * widthPct;
         return {
@@ -355,14 +356,22 @@ var __extends = (this && this.__extends) || (function () {
                 transform: "translate3d(" + xpct + "%,0,0)"
             }),
             index: index,
-            xpct: xpct
+            state: state
         };
     }
+    exports.Panel = Panel;
+    (function (Panel) {
+        Panel.EMPTY = 0;
+        Panel.PRERENDERED = 1;
+        Panel.FETCHING = 2;
+        Panel.RENDERED = 3;
+        Panel.DIRTY = -1;
+    })(Panel = exports.Panel || (exports.Panel = {}));
     /**
      * Creates a PanelSlider instance.
      */
     function PanelSlider(_a) {
-        var dom = _a.dom, totalPanels = _a.totalPanels, visiblePanels = _a.visiblePanels, _b = _a.initialPanel, initialPanel = _b === void 0 ? 0 : _b, _c = _a.slideDuration, slideDuration = _c === void 0 ? PanelSlider.DEFAULT_SLIDE_DURATION : _c, dragThreshold = _a.dragThreshold, dragRatio = _a.dragRatio, devices = _a.devices, _d = _a.on, on = _d === void 0 ? {} : _d, renderContent = _a.renderContent, _e = _a.terp, terp = _e === void 0 ? PanelSlider.terp : _e;
+        var dom = _a.dom, totalPanels = _a.totalPanels, visiblePanels = _a.visiblePanels, _b = _a.initialPanel, initialPanel = _b === void 0 ? 0 : _b, _c = _a.slideDuration, slideDuration = _c === void 0 ? PanelSlider.DEFAULT_SLIDE_DURATION : _c, dragThreshold = _a.dragThreshold, dragRatio = _a.dragRatio, devices = _a.devices, _d = _a.panelClassName, panelClassName = _d === void 0 ? '' : _d, _e = _a.on, on = _e === void 0 ? {} : _e, renderContent = _a.renderContent, _f = _a.terp, terp = _f === void 0 ? PanelSlider.terp : _f;
         var emitters = {
             dragstart: [],
             drag: [],
@@ -372,26 +381,30 @@ var __extends = (this && this.__extends) || (function () {
             animationstatechange: [],
             panelchange: []
         };
-        for (var _i = 0, _f = Object.keys(on); _i < _f.length; _i++) {
-            var key = _f[_i];
+        for (var _i = 0, _g = Object.keys(on); _i < _g.length; _i++) {
+            var key = _g[_i];
             if (on[key] != null) {
                 addListener(key, on[key]);
             }
         }
         var panelWidthPct = 100 / visiblePanels * 3;
-        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel(pid, panelWidthPct, 'panel'); });
+        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel(pid, panelWidthPct, Panel.EMPTY, panelClassName); });
         dom.innerHTML = '';
-        for (var _g = 0, panels_1 = panels; _g < panels_1.length; _g++) {
-            var p = panels_1[_g];
-            renderContent(p.dom, p.index);
+        for (var _h = 0, panels_1 = panels; _h < panels_1.length; _h++) {
+            var p = panels_1[_h];
+            p.state = renderContent(p.dom, p.index);
             dom.appendChild(p.dom);
         }
         // Will be computed on resize
         var fullWidth = panels.length;
         var visibleWidth = visiblePanels;
+        /** Width of a panel in pixels */
         var panelWidth = 1;
+        /** Current Panel index */
         var curPanel = initialPanel;
+        /** Current viewport position in pixels (left edge) */
         var curPosX = 0;
+        /** Indicates panel animation loop is running */
         var isAnimating = false;
         /** Update our full width and panel width on resize */
         function resize() {
@@ -402,7 +415,7 @@ var __extends = (this && this.__extends) || (function () {
             curPosX = -curPanel * panelWidth;
             render();
         }
-        function render(fast, redrawAll) {
+        function render(fast) {
             // note that: curPosX = -curPanel * panelWidth
             var x = Math.abs(curPosX);
             /** Inclusive start/end panel indexes */
@@ -416,16 +429,13 @@ var __extends = (this && this.__extends) || (function () {
             /** ids of panels that were not cached */
             var ids = [];
             var _loop_1 = function (i) {
-                // Find a cached panel
+                // Find a bound panel
                 var panel = panels.find(function (p) { return p.index === i; });
                 if (panel) {
-                    // Already rendered, just set position
-                    if (redrawAll) {
-                        // Unless a redraw is forced
-                        renderContent(panel.dom, i, fast);
+                    if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
+                        panel.state = renderContent(panel.dom, i, fast);
                     }
                     transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
-                    //keepPanels.push(panel)
                     keepPanels[i] = panel;
                 }
                 else {
@@ -447,9 +457,10 @@ var __extends = (this && this.__extends) || (function () {
                 // Need to render this
                 if (!fast) {
                     console.log("updating panel: " + i);
-                    panel.index = i;
                 }
-                renderContent(panel.dom, i, fast);
+                panel.index = i;
+                panel.state = Panel.DIRTY;
+                panel.state = renderContent(panel.dom, i, fast);
                 transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
                 keepPanels[i] = panel;
             }
@@ -460,12 +471,12 @@ var __extends = (this && this.__extends) || (function () {
                 var panel = panels.find(function (p) { return p.index === pid; });
                 if (!panel)
                     return false;
-                renderContent(panel.dom, panel.index);
+                panel.state = renderContent(panel.dom, panel.index);
                 return true;
             }
             for (var _i = 0, panels_2 = panels; _i < panels_2.length; _i++) {
                 var panel = panels_2[_i];
-                renderContent(panel.dom, panel.index);
+                panel.state = renderContent(panel.dom, panel.index);
             }
             return true;
         }
