@@ -75,25 +75,33 @@ function createPanelElement(className = '', style: {width?: string, transform?: 
 	return el
 }
 
-interface Panel {
+export interface Panel {
 	/** This panel always references the same dom node */
 	readonly dom: HTMLElement
 	/** Current panel index that renders to this panel */
 	index: number
-	/** Current x position as a % value */
-	xpct: number
-	// TODO: pixel value?
+	/** Rendered state of panel */
+	state: Panel.State
 }
 
-function Panel (index: number, widthPct: number, className = ''): Panel {
+export function Panel (index: number, widthPct: number, state = Panel.EMPTY, className = ''): Panel {
 	const xpct = index * widthPct
 	return {
 		dom: createPanelElement(className, {
 			transform: `translate3d(${xpct}%,0,0)`
 		}),
 		index,
-		xpct
+		state
 	}
+}
+
+export namespace Panel {
+	export type State = 0 | 1 | 2 | 3 | -1
+	export const EMPTY      : State = 0
+	export const PRERENDERED: State = 1
+	export const FETCHING   : State = 2
+	export const RENDERED   : State = 3
+	export const DIRTY      : State = -1
 }
 
 /**
@@ -104,6 +112,7 @@ function PanelSlider ({
 	totalPanels, visiblePanels, initialPanel = 0,
 	slideDuration = PanelSlider.DEFAULT_SLIDE_DURATION,
 	dragThreshold, dragRatio, devices,
+	panelClassName = '',
 	on = {},
 	renderContent,
 	terp = PanelSlider.terp
@@ -124,20 +133,24 @@ function PanelSlider ({
 	}
 	const panelWidthPct = 100 / visiblePanels * 3
 	const panels = range(visiblePanels * 3).map(pid => Panel(
-		pid, panelWidthPct, 'panel'
+		pid, panelWidthPct, Panel.EMPTY, panelClassName
 	))
 	dom.innerHTML = ''
 	for (const p of panels) {
-		renderContent(p.dom, p.index)
+		p.state = renderContent(p.dom, p.index)
 		dom.appendChild(p.dom)
 	}
 
 	// Will be computed on resize
 	let fullWidth = panels.length
 	let visibleWidth = visiblePanels
+	/** Width of a panel in pixels */
 	let panelWidth = 1
+	/** Current Panel index */
 	let curPanel = initialPanel
+	/** Current viewport position in pixels (left edge) */
 	let curPosX = 0
+	/** Indicates panel animation loop is running */
 	let isAnimating = false
 
 	/** Update our full width and panel width on resize */
@@ -150,7 +163,7 @@ function PanelSlider ({
 		render()
 	}
 
-	function render (fast?: boolean, redrawAll?: boolean) {
+	function render (fast?: boolean) {
 		// note that: curPosX = -curPanel * panelWidth
 		const x = Math.abs(curPosX)
 		/** Inclusive start/end panel indexes */
@@ -168,16 +181,13 @@ function PanelSlider ({
 		const ids: number[] = []
 		// Render panels that are cached
 		for (let i = iStart; i <= iEnd; ++i) {
-			// Find a cached panel
+			// Find a bound panel
 			const panel = panels.find(p => p.index === i)
 			if (panel) {
-				// Already rendered, just set position
-				if (redrawAll) {
-					// Unless a redraw is forced
-					renderContent(panel.dom, i, fast)
+				if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
+					panel.state = renderContent(panel.dom, i, fast)
 				}
 				setPos3d(panel.dom, curPosX + i * panelWidth)
-				//keepPanels.push(panel)
 				keepPanels[i] = panel
 			} else {
 				ids.push(i)
@@ -193,9 +203,10 @@ function PanelSlider ({
 			// Need to render this
 			if (!fast) {
 				console.log(`updating panel: ${i}`)
-				panel.index = i
 			}
-			renderContent(panel.dom, i, fast)
+			panel.index = i
+			panel.state = Panel.DIRTY
+			panel.state = renderContent(panel.dom, i, fast)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels[i] = panel
 		}
@@ -206,11 +217,11 @@ function PanelSlider ({
 		if (pid != null) {
 			const panel = panels.find(p => p.index === pid)
 			if (!panel) return false
-			renderContent(panel.dom, panel.index)
+			panel.state = renderContent(panel.dom, panel.index)
 			return true
 		}
 		for (const panel of panels) {
-			renderContent(panel.dom, panel.index)
+			panel.state = renderContent(panel.dom, panel.index)
 		}
 		return true
 	}
@@ -536,10 +547,12 @@ namespace PanelSlider {
 		dragRatio?: number
 		/** Input devices to enable (default ['mouse', 'touch']) */
 		devices?: ('mouse' | 'touch')[]
+		/** CSS className to use for the panel elements */
+		panelClassName?: string
 		/** Initial event listeners */
 		on?: EventListeners
 		/** Application function to render a panel */
-		renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): void
+		renderContent(dom: HTMLElement, panelIndex: number, fast?: boolean): Panel.State
 		/**
 		 * Optional custom animation interpolation function
 		 * @param x0 Start coordinate

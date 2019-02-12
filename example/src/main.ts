@@ -1,4 +1,4 @@
-import PanelSlider from '../../src/index'
+import PanelSlider, {Panel} from '../../src/index'
 import * as content from './content'
 
 /** getElementById helper */
@@ -64,6 +64,13 @@ const slider = PanelSlider({
 	totalPanels: NUM_PANELS,  // # of total panels
 	visiblePanels: 1, // # of panels that fit on screen
 	slideDuration: 275,
+	panelClassName: 'panel',
+	// Callback that gets invoked when the PanelSlider needs
+	// to render this panel.
+	// dom  - the element we render children to
+	// pid  - the panel index
+	// fast - a boolean indicating if this is a 'fast' (animating)
+	//        frame, in which case we should skip async/heavy tasks.
 	renderContent: (dom, pid, fast) => {
 		// Try to get 'ready' content for this panel
 		let c = content.peek(pid)
@@ -72,18 +79,23 @@ const slider = PanelSlider({
 			// Content is available now - render it:
 			dom.innerHTML = ''
 			dom.appendChild(renderPanelContent(pid, c))
-			//try to force dom layout?
-			//let rc = dom.getBoundingClientRect()
+			// Indicate did render
+			return Panel.RENDERED
 		} else if (!fast) {
 			// Content not available yet - fetch
 			c = c || Promise.resolve(content.get(pid))
 			// Request PanelSlider to re-render this panel when the content promise resolves.
-			c.then(() => {slider.renderContent(pid)})
+			c.then(() => {
+				slider.renderContent(pid)
+			})
+			dom.innerHTML = '<p>(loading)</p>'
+			return Panel.FETCHING
 		} else {
 			// Content not available but this is a 'fast' render so
 			// don't bother fetching anything.
 			// We could render some 'loading' or low-res content here...
-			//dom.innerHTML = ''
+			dom.innerHTML = '<p>---</p>'
+			return Panel.PRERENDERED
 		}
 	},
 	on: {
