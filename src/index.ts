@@ -2,6 +2,7 @@ import {range} from './array'
 import {clamp} from './math'
 import {setPos3d} from './transform'
 import Dragger from './Dragger'
+import Panel from './Panel'
 
 // tslint:disable unified-signatures
 
@@ -40,7 +41,7 @@ interface PanelSlider {
 	/** Gets the current panel */
 	getPanel(): number
 	/** Sets the current panel - animates to position */
-	setPanel(panelId: number, done?: (panelId: number) => void): void
+	setPanel(panelId: number): Promise<number>
 	/** Sets the current panel immediately, no animation */
 	setPanelImmediate(panelId: number): void
 	/** Gets the current root element & panel sizes */
@@ -57,51 +58,6 @@ interface PanelSlider {
 	renderContent(panelId: number): boolean
 	/** Destroy & cleanup resources */
 	destroy(): void
-}
-
-function createPanelElement(className = '', style: {width?: string, transform?: string} = {}) {
-	const el = document.createElement('div')
-	if (className) {
-		el.className = className
-	}
-	Object.assign(el.style, {
-		position: 'absolute',
-		left: '0',
-		top: '0',
-		width: '100%',
-		height: '100%',
-		transform: 'translate3d(0,0,0)'
-	}, style)
-	return el
-}
-
-export interface Panel {
-	/** This panel always references the same dom node */
-	readonly dom: HTMLElement
-	/** Current panel index that renders to this panel */
-	index: number
-	/** Rendered state of panel */
-	state: Panel.State
-}
-
-export function Panel (index: number, widthPct: number, state = Panel.EMPTY, className = ''): Panel {
-	const xpct = index * widthPct
-	return {
-		dom: createPanelElement(className, {
-			transform: `translate3d(${xpct}%,0,0)`
-		}),
-		index,
-		state
-	}
-}
-
-export namespace Panel {
-	export type State = 0 | 1 | 2 | 3 | -1
-	export const EMPTY      : State = 0
-	export const PRERENDERED: State = 1
-	export const FETCHING   : State = 2
-	export const RENDERED   : State = 3
-	export const DIRTY      : State = -1
 }
 
 /**
@@ -393,10 +349,18 @@ function PanelSlider ({
 		return curPanel
 	}
 
-	/** Sets current panel index, animates to position */
-	function setPanel (panelId: number, done?: (panelId: number) => void) {
-		if (panelId === curPanel) return
-		animateTo(panelId, slideDuration, done)
+	/**
+	 * Animates to position and updates panel index.
+	 * The animation could be redirected or aborted,
+	 * so the result index may not be what was
+	 * requested or the promise may not resolve.
+	 */
+	function setPanel (panelId: number) {
+		return panelId === curPanel
+			? Promise.resolve(panelId)
+			: new Promise<number>(r => {
+				animateTo(panelId, slideDuration, r)
+			})
 	}
 
 	/** Sets the current panel index immediately, no animation */
@@ -539,9 +503,12 @@ namespace PanelSlider {
 
 	/** PanelSlider creation options */
 	export interface Options {
-		/** The root element to use */
+		/**
+		 * The root DOM element to use. It should be empty and
+		 * panel child elements will be added to it.
+		 */
 		dom: HTMLElement
-		/** Total number of panels */
+		/** Total number of panels with content */
 		totalPanels: number
 		/** Total number of visible panels that fit across the width of panel-set container */
 		visiblePanels: number
@@ -566,6 +533,7 @@ namespace PanelSlider {
 		 * @param x0 Start coordinate
 		 * @param x1 End coordinate
 		 * @param t Time (0..1)
+		 * @returns Interpolated value between x0 (t=0) and x1 (t=1)
 		 */
 		terp?(x0: number, x1: number, t: number): number
 	}

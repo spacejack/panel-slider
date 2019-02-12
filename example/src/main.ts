@@ -1,4 +1,5 @@
-import PanelSlider, {Panel} from '../../src/index'
+import Panel from '../../src/Panel'
+import PanelSlider from '../../src/index'
 import * as content from './content'
 
 /** getElementById helper */
@@ -20,7 +21,7 @@ function createPageButton (panelId: number) {
 	b.className = 'btn-pg'
 	b.textContent = String(panelId)
 	b.addEventListener('click', () => {
-		slider.setPanel(panelId, pid => {
+		slider.setPanel(panelId).then(pid => {
 			elId.textContent = String(pid)
 		})
 	})
