@@ -10,7 +10,7 @@
     "serve:ex": "http-server -p 3000 example/public",
     "compile:ex": "browserify --debug example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
     "watch:ex": "watchify -v --debug example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
-    "build:ex": "browserify example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] | uglifyjs -cm -o example/public/js/app.js",
+    "build:ex": "browserify example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
     "clean:ex": "rm -f example/public/js/app.js",
     "clean:lib": "rm -f index.js index.d.ts src/*.d.ts src/*.js",
     "build": "run-s build:*",
