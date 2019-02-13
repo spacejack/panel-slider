@@ -17,7 +17,7 @@ function Panel (
 	const xpct = index * widthPct
 	return {
 		dom: Panel.createElement(className, {
-			width: `${widthPct}%`,
+			width: `${100}%`,
 			transform: `translate3d(${xpct}%,0,0)`
 		}),
 		index,

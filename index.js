@@ -230,7 +230,8 @@ var __extends = (this && this.__extends) || (function () {
         if (className === void 0) { className = ''; }
         var xpct = index * widthPct;
         return {
-            dom: createPanelElement(className, {
+            dom: Panel.createElement(className, {
+                width: 100 + "%",
                 transform: "translate3d(" + xpct + "%,0,0)"
             }),
             index: index,
@@ -244,27 +245,27 @@ var __extends = (this && this.__extends) || (function () {
         Panel.FETCHING = 2;
         Panel.RENDERED = 3;
         Panel.DIRTY = -1;
+        /** Creates a Panel DOM node */
+        function createElement(className, style) {
+            if (className === void 0) { className = ''; }
+            if (style === void 0) { style = {}; }
+            var el = document.createElement('div');
+            if (className) {
+                el.className = className;
+            }
+            Object.assign(el.style, {
+                position: 'absolute',
+                left: '0',
+                top: '0',
+                width: '100%',
+                height: '100%',
+                transform: 'translate3d(0,0,0)'
+            }, style);
+            return el;
+        }
+        Panel.createElement = createElement;
     })(Panel || (Panel = {}));
     exports.default = Panel;
-    /** Creates a Panel DOM node */
-    function createPanelElement(className, style) {
-        if (className === void 0) { className = ''; }
-        if (style === void 0) { style = {}; }
-        var el = document.createElement('div');
-        if (className) {
-            el.className = className;
-        }
-        Object.assign(el.style, {
-            position: 'absolute',
-            left: '0',
-            top: '0',
-            width: '100%',
-            height: '100%',
-            transform: 'translate3d(0,0,0)'
-        }, style);
-        return el;
-    }
-    exports.createPanelElement = createPanelElement;
 });
 
 },{}],3:[function(require,module,exports){

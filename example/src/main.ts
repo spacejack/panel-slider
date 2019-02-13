@@ -13,6 +13,7 @@ const elId = $e('panelId')
 const elPos = $e('panelPos')
 
 const NUM_PANELS = 101
+const MIN_PANEL_WIDTH = 600
 
 /** Create a page button element */
 function createPageButton (panelId: number) {
