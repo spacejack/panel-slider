@@ -129,23 +129,23 @@ function PanelSlider ({
 			Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth),
 			totalPanels - 1
 		)
-		if (!fast) {
-			// Render extrap panels outward from viewport edges.
-			// Start on the left side then alternate.
-			for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
-				if (i % 2 === 0) {
-					if (iStart > 0) {
-						iStart -= 1
-						n -= 1
-					}
-				} else {
-					if (iEnd < panels.length - 1) {
-						iEnd += 1
-						n -= 1
-					}
+		//if (!fast) {
+		// Render extrap panels outward from viewport edges.
+		// Start on the left side then alternate.
+		for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
+			if (i % 2 === 0) {
+				if (iStart > 0) {
+					iStart -= 1
+					n -= 1
+				}
+			} else {
+				if (iEnd < panels.length - 1) {
+					iEnd += 1
+					n -= 1
 				}
 			}
 		}
+		//}
 		/** Cached panels that are still valid */
 		const keepPanels: {[id: number]: Panel} = Object.create(null)
 		/** ids of panels that were not cached */
@@ -251,8 +251,11 @@ function PanelSlider ({
 		const x = curPosX + xvel * 0.5
 		let destination = clamp(Math.round(-x / panelWidth), 0, totalPanels - 1)
 		const p0 = curPanel
-		if (destination - p0 > 1) destination = p0 + 1
-		else if (p0 - destination > 1) destination = p0 - 1
+		if (destination - p0 > visiblePanels) {
+			destination = p0 + visiblePanels
+		} else if (p0 - destination > visiblePanels) {
+			destination = p0 - visiblePanels
+		}
 		const dur = clamp(
 			slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)),
 			17, slideDuration

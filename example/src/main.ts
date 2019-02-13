@@ -90,7 +90,7 @@ function preRenderPanelContent (pid: number, text: string) {
  * (Re)Create & configure a PanelSlider instance
  */
 function initPanelSlider (visiblePanels: number) {
-	let initialPanel = 1
+	let initialPanel = 0
 	if (slider != null) {
 		initialPanel = slider.getPanel()
 		slider.destroy()
