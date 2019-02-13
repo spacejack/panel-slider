@@ -90,13 +90,16 @@ function preRenderPanelContent (pid: number, text: string) {
  * (Re)Create & configure a PanelSlider instance
  */
 function initPanelSlider (visiblePanels: number) {
+	let initialPanel = 1
 	if (slider != null) {
+		initialPanel = slider.getPanel()
 		slider.destroy()
 	}
 	slider = PanelSlider({
 		dom: document.querySelector('.panel-set') as HTMLElement,
 		totalPanels: NUM_PANELS,  // # of total panels
 		visiblePanels, // # of panels that fit on screen
+		initialPanel,
 		slideDuration: 400,
 		panelClassName: 'panel',
 		// Callback that gets invoked when the PanelSlider needs

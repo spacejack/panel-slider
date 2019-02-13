@@ -89,7 +89,7 @@ function PanelSlider ({
 	}
 
 	const panelWidthPct = 100 / visiblePanels
-	const panels = range(visiblePanels * 3).map(pid => Panel(
+	const panels = range(initialPanel, initialPanel + visiblePanels * 3).map(pid => Panel(
 		pid, panelWidthPct, Panel.EMPTY, panelClassName
 	))
 	dom.innerHTML = ''
