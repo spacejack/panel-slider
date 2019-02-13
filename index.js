@@ -231,7 +231,7 @@ var __extends = (this && this.__extends) || (function () {
         var xpct = index * widthPct;
         return {
             dom: Panel.createElement(className, {
-                width: 100 + "%",
+                width: widthPct + "%",
                 transform: "translate3d(" + xpct + "%,0,0)"
             }),
             index: index,
@@ -407,7 +407,7 @@ var __extends = (this && this.__extends) || (function () {
                 addListener(key, on[key]);
             }
         }
-        var panelWidthPct = 100 / visiblePanels * 3;
+        var panelWidthPct = 100 / visiblePanels;
         var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName); });
         dom.innerHTML = '';
         for (var _h = 0, panels_1 = panels; _h < panels_1.length; _h++) {
@@ -429,7 +429,7 @@ var __extends = (this && this.__extends) || (function () {
         /** Update our full width and panel width on resize */
         function resize() {
             var rc = dom.getBoundingClientRect();
-            panelWidth = rc.width;
+            panelWidth = rc.width / visiblePanels;
             visibleWidth = panelWidth * visiblePanels;
             fullWidth = panelWidth * totalPanels;
             curPosX = -curPanel * panelWidth;
@@ -440,17 +440,22 @@ var __extends = (this && this.__extends) || (function () {
             var x = Math.abs(curPosX);
             /** Inclusive start/end panel indexes */
             var iStart = Math.floor(totalPanels * x / fullWidth);
-            var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
+            var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth), totalPanels - 1);
             if (!fast) {
-                var n = iEnd - iStart + 1;
-                if (n < panels.length) {
-                    // Not a fast render, so render something to the extra panel
-                    // TODO: Better algo to select panels to render...
-                    if (iStart > 0) {
-                        iStart -= 1; // render 1 extra to the left
+                // Render extrap panels outward from viewport edges.
+                // Start on the left side then alternate.
+                for (var i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
+                    if (i % 2 === 0) {
+                        if (iStart > 0) {
+                            iStart -= 1;
+                            n -= 1;
+                        }
                     }
                     else {
-                        iEnd = Math.min(iEnd + 1, totalPanels - 1);
+                        if (iEnd < panels.length - 1) {
+                            iEnd += 1;
+                            n -= 1;
+                        }
                     }
                 }
             }
