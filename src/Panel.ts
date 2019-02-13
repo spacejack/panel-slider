@@ -16,7 +16,8 @@ function Panel (
 ): Panel {
 	const xpct = index * widthPct
 	return {
-		dom: createPanelElement(className, {
+		dom: Panel.createElement(className, {
+			width: `${widthPct}%`,
 			transform: `translate3d(${xpct}%,0,0)`
 		}),
 		index,
@@ -32,23 +33,23 @@ namespace Panel {
 	export const FETCHING   : State = 2
 	export const RENDERED   : State = 3
 	export const DIRTY      : State = -1
+
+	/** Creates a Panel DOM node */
+	export function createElement(className = '', style: {width?: string, transform?: string} = {}) {
+		const el = document.createElement('div')
+		if (className) {
+			el.className = className
+		}
+		Object.assign(el.style, {
+			position: 'absolute',
+			left: '0',
+			top: '0',
+			width: '100%',
+			height: '100%',
+			transform: 'translate3d(0,0,0)'
+		}, style)
+		return el
+	}
 }
 
 export default Panel
-
-/** Creates a Panel DOM node */
-export function createPanelElement(className = '', style: {width?: string, transform?: string} = {}) {
-	const el = document.createElement('div')
-	if (className) {
-		el.className = className
-	}
-	Object.assign(el.style, {
-		position: 'absolute',
-		left: '0',
-		top: '0',
-		width: '100%',
-		height: '100%',
-		transform: 'translate3d(0,0,0)'
-	}, style)
-	return el
-}

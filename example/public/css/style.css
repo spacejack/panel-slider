@@ -12,10 +12,9 @@ html, body {
 
 nav {
 	position: absolute;
-	top: 0;
-	left: 0;
-	padding: 0.25em;
-	max-width: 12.5em;
+	top: 1em;
+	left: 1em;
+	max-width: 20em;
 }
 
 button {
@@ -39,11 +38,11 @@ button:active {
 }
 
 button.btn-pg {
-	font-size: 0.7em;
+	font-size: 0.675em;
 	margin-right: 0.25em;
 	padding: 0;
-	width: 1.5em;
-	height: 1.5em;
+	width: 2em;
+	height: 2em;
 }
 
 .container {
