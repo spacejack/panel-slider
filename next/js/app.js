@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Panel_1 = require("../../src/Panel");
 const index_1 = require("../../src/index");
 const content = require("./content");
+let slider;
 /** getElementById helper */
 function $e(id) {
     return document.getElementById(id);
@@ -47,7 +48,8 @@ function $e(id) {
 const elId = $e('panelId');
 /** Element to display live panel position */
 const elPos = $e('panelPos');
-const NUM_PANELS = 100;
+const NUM_PANELS = 101;
+const MIN_PANEL_WIDTH = 480;
 /** Create a page button element */
 function createPageButton(panelId) {
     const b = document.createElement('button');
@@ -92,6 +94,7 @@ function renderPanelContent(pid, texts) {
     }
     return div;
 }
+/** Pre-render (fast) */
 function preRenderPanelContent(pid, text) {
     const div = document.createElement('div');
     const h2 = document.createElement('h2');
@@ -111,68 +114,92 @@ function preRenderPanelContent(pid, text) {
     div.appendChild(p);
     return div;
 }
-buildNav();
-//
-// Create & configure a PanelSlider instance
-//
-const slider = index_1.default({
-    dom: document.querySelector('.panel-set'),
-    totalPanels: NUM_PANELS,
-    visiblePanels: 1,
-    slideDuration: 400,
-    panelClassName: 'panel',
-    // Callback that gets invoked when the PanelSlider needs
-    // to render this panel.
-    // panel - the Panel we're rendering
-    // fast  - a boolean indicating if this is a 'fast' (animating)
-    //         frame, in which case we should skip async/heavy tasks.
-    renderContent: (panel, fast) => {
-        // Try to get 'ready' content for this panel
-        let c = content.peek(panel.index);
-        // If it's ready to use, we got an array of strings
-        if (Array.isArray(c)) {
-            // Content is available now - render it:
-            panel.dom.innerHTML = '';
-            panel.dom.appendChild(renderPanelContent(panel.index, c));
-            // Indicate did render
-            return Panel_1.default.RENDERED;
-        }
-        else if (!fast) {
-            // Content not available yet - fetch
-            c = c || Promise.resolve(content.get(panel.index));
-            c.then(() => {
-                // Request PanelSlider to re-render this panel when the content promise
-                // resolves. It's possible this panel is no longer bound to this ID by
-                // then so the render request may be ignored.
-                slider.renderContent(panel.index);
-            });
-            // Do a fast render while waiting
-            panel.dom.innerHTML = '';
-            panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'));
-            return Panel_1.default.FETCHING;
-        }
-        else {
-            // Content not available but this is a 'fast' render so
-            // don't bother fetching anything.
-            // We could render some 'loading' or low-res content here...
-            panel.dom.innerHTML = '';
-            panel.dom.appendChild(preRenderPanelContent(panel.index, '...'));
-            return Panel_1.default.PRERENDERED;
-        }
-    },
-    on: {
-        panelchange: e => {
-            // Update panel ID displayed
-            elId.textContent = String(e.panelId);
-        },
-        animate: e => {
-            // Update panel position displayed
-            elPos.textContent = e.panelFraction.toFixed(2);
-        }
+/**
+ * (Re)Create & configure a PanelSlider instance
+ */
+function initPanelSlider(visiblePanels) {
+    let initialPanel = 0;
+    if (slider != null) {
+        initialPanel = slider.getPanel();
+        slider.destroy();
     }
+    slider = index_1.default({
+        dom: document.querySelector('.panel-set'),
+        totalPanels: NUM_PANELS,
+        visiblePanels,
+        initialPanel,
+        slideDuration: 400,
+        panelClassName: 'panel',
+        // Callback that gets invoked when the PanelSlider needs
+        // to render this panel.
+        // panel - the Panel we're rendering
+        // fast  - a boolean indicating if this is a 'fast' (animating)
+        //         frame, in which case we should skip async/heavy tasks.
+        renderContent: (panel, fast) => {
+            // Try to get 'ready' content for this panel
+            let c = content.peek(panel.index);
+            // If it's ready to use, we got an array of strings
+            if (Array.isArray(c)) {
+                // Content is available now - render it:
+                panel.dom.innerHTML = '';
+                panel.dom.appendChild(renderPanelContent(panel.index, c));
+                // Indicate did render
+                return Panel_1.default.RENDERED;
+            }
+            else if (!fast) {
+                // Content not available yet - fetch
+                c = c || Promise.resolve(content.get(panel.index));
+                c.then(() => {
+                    // Request PanelSlider to re-render this panel when the content promise
+                    // resolves. It's possible this panel is no longer bound to this ID by
+                    // then so the render request may be ignored.
+                    slider.renderContent(panel.index);
+                });
+                // Do a fast render while waiting
+                panel.dom.innerHTML = '';
+                panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'));
+                return Panel_1.default.FETCHING;
+            }
+            else {
+                // Content not available but this is a 'fast' render so
+                // don't bother fetching anything.
+                // We could render some 'loading' or low-res content here...
+                panel.dom.innerHTML = '';
+                panel.dom.appendChild(preRenderPanelContent(panel.index, '...'));
+                return Panel_1.default.PRERENDERED;
+            }
+        },
+        on: {
+            panelchange: e => {
+                // Update panel ID displayed
+                elId.textContent = String(e.panelId);
+            },
+            animate: e => {
+                // Update panel position displayed
+                elPos.textContent = e.panelFraction.toFixed(2);
+            }
+        }
+    });
+}
+function calcVisiblePanels() {
+    containerWidth = rootElement.getBoundingClientRect().width;
+    return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1);
+}
+const rootElement = document.querySelector('.panel-set');
+let containerWidth = rootElement.getBoundingClientRect().width;
+let numVisiblePanels = calcVisiblePanels();
+buildNav();
+window.addEventListener('load', () => {
+    numVisiblePanels = calcVisiblePanels();
+    initPanelSlider(numVisiblePanels);
+    window.addEventListener('resize', e => {
+        const n = calcVisiblePanels();
+        if (n !== numVisiblePanels) {
+            numVisiblePanels = n;
+            initPanelSlider(numVisiblePanels);
+        }
+    });
 });
-// To cleanup:
-// slider.destroy()
 
 },{"../../src/Panel":4,"../../src/index":7,"./content":1}],3:[function(require,module,exports){
 "use strict";
@@ -367,7 +394,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
     const xpct = index * widthPct;
     return {
-        dom: createPanelElement(className, {
+        dom: Panel.createElement(className, {
+            width: `${widthPct}%`,
             transform: `translate3d(${xpct}%,0,0)`
         }),
         index,
@@ -381,25 +409,25 @@ function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
     Panel.FETCHING = 2;
     Panel.RENDERED = 3;
     Panel.DIRTY = -1;
+    /** Creates a Panel DOM node */
+    function createElement(className = '', style = {}) {
+        const el = document.createElement('div');
+        if (className) {
+            el.className = className;
+        }
+        Object.assign(el.style, {
+            position: 'absolute',
+            left: '0',
+            top: '0',
+            width: '100%',
+            height: '100%',
+            transform: 'translate3d(0,0,0)'
+        }, style);
+        return el;
+    }
+    Panel.createElement = createElement;
 })(Panel || (Panel = {}));
 exports.default = Panel;
-/** Creates a Panel DOM node */
-function createPanelElement(className = '', style = {}) {
-    const el = document.createElement('div');
-    if (className) {
-        el.className = className;
-    }
-    Object.assign(el.style, {
-        position: 'absolute',
-        left: '0',
-        top: '0',
-        width: '100%',
-        height: '100%',
-        transform: 'translate3d(0,0,0)'
-    }, style);
-    return el;
-}
-exports.createPanelElement = createPanelElement;
 
 },{}],5:[function(require,module,exports){
 "use strict";
@@ -495,8 +523,8 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
             addListener(key, on[key]);
         }
     }
-    const panelWidthPct = 100 / visiblePanels * 3;
-    const panels = array_1.range(visiblePanels * 3).map(pid => Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName));
+    const panelWidthPct = 100 / visiblePanels;
+    const panels = array_1.range(initialPanel, initialPanel + visiblePanels * 3).map(pid => Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName));
     dom.innerHTML = '';
     for (const p of panels) {
         p.state = renderContent(p);
@@ -516,7 +544,7 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
     /** Update our full width and panel width on resize */
     function resize() {
         const rc = dom.getBoundingClientRect();
-        panelWidth = rc.width;
+        panelWidth = rc.width / visiblePanels;
         visibleWidth = panelWidth * visiblePanels;
         fullWidth = panelWidth * totalPanels;
         curPosX = -curPanel * panelWidth;
@@ -527,20 +555,25 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
         const x = Math.abs(curPosX);
         /** Inclusive start/end panel indexes */
         let iStart = Math.floor(totalPanels * x / fullWidth);
-        let iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth) / fullWidth), totalPanels - 1);
-        if (!fast) {
-            const n = iEnd - iStart + 1;
-            if (n < panels.length) {
-                // Not a fast render, so render something to the extra panel
-                // TODO: Better algo to select panels to render...
+        let iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth), totalPanels - 1);
+        //if (!fast) {
+        // Render extrap panels outward from viewport edges.
+        // Start on the left side then alternate.
+        for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
+            if (i % 2 === 0) {
                 if (iStart > 0) {
-                    iStart -= 1; // render 1 extra to the left
+                    iStart -= 1;
+                    n -= 1;
                 }
-                else {
-                    iEnd = Math.min(iEnd + 1, totalPanels - 1);
+            }
+            else {
+                if (iEnd < panels.length - 1) {
+                    iEnd += 1;
+                    n -= 1;
                 }
             }
         }
+        //}
         /** Cached panels that are still valid */
         const keepPanels = Object.create(null);
         /** ids of panels that were not cached */
@@ -639,16 +672,19 @@ function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel = 0, slideD
         const x = curPosX + xvel * 0.5;
         let destination = math_1.clamp(Math.round(-x / panelWidth), 0, totalPanels - 1);
         const p0 = curPanel;
-        if (destination - p0 > 1)
-            destination = p0 + 1;
-        else if (p0 - destination > 1)
-            destination = p0 - 1;
+        if (destination - p0 > visiblePanels) {
+            destination = p0 + visiblePanels;
+        }
+        else if (p0 - destination > visiblePanels) {
+            destination = p0 - visiblePanels;
+        }
         const dur = math_1.clamp(slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)), 17, slideDuration);
         animateTo(destination, dur, done);
     }
     /** Animate panels to the specified panelId */
     function animateTo(destPanel, dur = slideDuration, done) {
         if (isAnimating) {
+            // TODO: Allow redirect
             console.warn("Cannot animateTo - already animating");
             return;
         }
