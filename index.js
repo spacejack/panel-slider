@@ -408,7 +408,7 @@ var __extends = (this && this.__extends) || (function () {
             }
         }
         var panelWidthPct = 100 / visiblePanels;
-        var panels = array_1.range(visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName); });
+        var panels = array_1.range(initialPanel, initialPanel + visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName); });
         dom.innerHTML = '';
         for (var _h = 0, panels_1 = panels; _h < panels_1.length; _h++) {
             var p = panels_1[_h];
@@ -441,24 +441,24 @@ var __extends = (this && this.__extends) || (function () {
             /** Inclusive start/end panel indexes */
             var iStart = Math.floor(totalPanels * x / fullWidth);
             var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth), totalPanels - 1);
-            if (!fast) {
-                // Render extrap panels outward from viewport edges.
-                // Start on the left side then alternate.
-                for (var i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
-                    if (i % 2 === 0) {
-                        if (iStart > 0) {
-                            iStart -= 1;
-                            n -= 1;
-                        }
+            //if (!fast) {
+            // Render extrap panels outward from viewport edges.
+            // Start on the left side then alternate.
+            for (var i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
+                if (i % 2 === 0) {
+                    if (iStart > 0) {
+                        iStart -= 1;
+                        n -= 1;
                     }
-                    else {
-                        if (iEnd < panels.length - 1) {
-                            iEnd += 1;
-                            n -= 1;
-                        }
+                }
+                else {
+                    if (iEnd < panels.length - 1) {
+                        iEnd += 1;
+                        n -= 1;
                     }
                 }
             }
+            //}
             /** Cached panels that are still valid */
             var keepPanels = Object.create(null);
             /** ids of panels that were not cached */
@@ -563,10 +563,12 @@ var __extends = (this && this.__extends) || (function () {
             var x = curPosX + xvel * 0.5;
             var destination = math_1.clamp(Math.round(-x / panelWidth), 0, totalPanels - 1);
             var p0 = curPanel;
-            if (destination - p0 > 1)
-                destination = p0 + 1;
-            else if (p0 - destination > 1)
-                destination = p0 - 1;
+            if (destination - p0 > visiblePanels) {
+                destination = p0 + visiblePanels;
+            }
+            else if (p0 - destination > visiblePanels) {
+                destination = p0 - visiblePanels;
+            }
             var dur = math_1.clamp(slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)), 17, slideDuration);
             animateTo(destination, dur, done);
         }
