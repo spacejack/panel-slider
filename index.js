@@ -569,6 +569,7 @@ var __extends = (this && this.__extends) || (function () {
         function animateTo(destPanel, dur, done) {
             if (dur === void 0) { dur = slideDuration; }
             if (isAnimating) {
+                // TODO: Allow redirect
                 console.warn("Cannot animateTo - already animating");
                 return;
             }

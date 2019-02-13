@@ -2,3 +2,4 @@
 *.log
 *.ini
 /example/public/js/*.js
+/tmp

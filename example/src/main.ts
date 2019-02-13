@@ -2,6 +2,8 @@ import Panel from '../../src/Panel'
 import PanelSlider from '../../src/index'
 import * as content from './content'
 
+let slider: PanelSlider
+
 /** getElementById helper */
 function $e (id: string) {
 	return document.getElementById(id) as HTMLElement
@@ -13,7 +15,7 @@ const elId = $e('panelId')
 const elPos = $e('panelPos')
 
 const NUM_PANELS = 101
-const MIN_PANEL_WIDTH = 600
+const MIN_PANEL_WIDTH = 480
 
 /** Create a page button element */
 function createPageButton (panelId: number) {
@@ -63,6 +65,7 @@ function renderPanelContent (pid: number, texts: string[]) {
 	return div
 }
 
+/** Pre-render (fast) */
 function preRenderPanelContent (pid: number, text: string) {
 	const div = document.createElement('div')
 	const h2 = document.createElement('h2')
@@ -83,65 +86,89 @@ function preRenderPanelContent (pid: number, text: string) {
 	return div
 }
 
+/**
+ * (Re)Create & configure a PanelSlider instance
+ */
+function initPanelSlider (visiblePanels: number) {
+	if (slider != null) {
+		slider.destroy()
+	}
+	slider = PanelSlider({
+		dom: document.querySelector('.panel-set') as HTMLElement,
+		totalPanels: NUM_PANELS,  // # of total panels
+		visiblePanels, // # of panels that fit on screen
+		slideDuration: 400,
+		panelClassName: 'panel',
+		// Callback that gets invoked when the PanelSlider needs
+		// to render this panel.
+		// panel - the Panel we're rendering
+		// fast  - a boolean indicating if this is a 'fast' (animating)
+		//         frame, in which case we should skip async/heavy tasks.
+		renderContent: (panel, fast) => {
+			// Try to get 'ready' content for this panel
+			let c = content.peek(panel.index)
+			// If it's ready to use, we got an array of strings
+			if (Array.isArray(c)) {
+				// Content is available now - render it:
+				panel.dom.innerHTML = ''
+				panel.dom.appendChild(renderPanelContent(panel.index, c))
+				// Indicate did render
+				return Panel.RENDERED
+			} else if (!fast) {
+				// Content not available yet - fetch
+				c = c || Promise.resolve(content.get(panel.index))
+				c.then(() => {
+					// Request PanelSlider to re-render this panel when the content promise
+					// resolves. It's possible this panel is no longer bound to this ID by
+					// then so the render request may be ignored.
+					slider.renderContent(panel.index)
+				})
+				// Do a fast render while waiting
+				panel.dom.innerHTML = ''
+				panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'))
+				return Panel.FETCHING
+			} else {
+				// Content not available but this is a 'fast' render so
+				// don't bother fetching anything.
+				// We could render some 'loading' or low-res content here...
+				panel.dom.innerHTML = ''
+				panel.dom.appendChild(preRenderPanelContent(panel.index, '...'))
+				return Panel.PRERENDERED
+			}
+		},
+		on: {
+			panelchange: e => {
+				// Update panel ID displayed
+				elId.textContent = String(e.panelId)
+			},
+			animate: e => {
+				// Update panel position displayed
+				elPos.textContent = e.panelFraction.toFixed(2)
+			}
+		}
+	})
+}
+
+
+function calcVisiblePanels() {
+	containerWidth = rootElement.getBoundingClientRect().width
+	return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1)
+}
+
+const rootElement = document.querySelector('.panel-set') as HTMLElement
+let containerWidth = rootElement.getBoundingClientRect().width
+let numVisiblePanels = calcVisiblePanels()
+
 buildNav()
 
-//
-// Create & configure a PanelSlider instance
-//
-const slider = PanelSlider({
-	dom: document.querySelector('.panel-set') as HTMLElement,
-	totalPanels: NUM_PANELS,  // # of total panels
-	visiblePanels: 1, // # of panels that fit on screen
-	slideDuration: 400,
-	panelClassName: 'panel',
-	// Callback that gets invoked when the PanelSlider needs
-	// to render this panel.
-	// panel - the Panel we're rendering
-	// fast  - a boolean indicating if this is a 'fast' (animating)
-	//         frame, in which case we should skip async/heavy tasks.
-	renderContent: (panel, fast) => {
-		// Try to get 'ready' content for this panel
-		let c = content.peek(panel.index)
-		// If it's ready to use, we got an array of strings
-		if (Array.isArray(c)) {
-			// Content is available now - render it:
-			panel.dom.innerHTML = ''
-			panel.dom.appendChild(renderPanelContent(panel.index, c))
-			// Indicate did render
-			return Panel.RENDERED
-		} else if (!fast) {
-			// Content not available yet - fetch
-			c = c || Promise.resolve(content.get(panel.index))
-			c.then(() => {
-				// Request PanelSlider to re-render this panel when the content promise
-				// resolves. It's possible this panel is no longer bound to this ID by
-				// then so the render request may be ignored.
-				slider.renderContent(panel.index)
-			})
-			// Do a fast render while waiting
-			panel.dom.innerHTML = ''
-			panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'))
-			return Panel.FETCHING
-		} else {
-			// Content not available but this is a 'fast' render so
-			// don't bother fetching anything.
-			// We could render some 'loading' or low-res content here...
-			panel.dom.innerHTML = ''
-			panel.dom.appendChild(preRenderPanelContent(panel.index, '...'))
-			return Panel.PRERENDERED
+window.addEventListener('load', () => {
+	numVisiblePanels = calcVisiblePanels()
+	initPanelSlider(numVisiblePanels)
+	window.addEventListener('resize', e => {
+		const n = calcVisiblePanels()
+		if (n !== numVisiblePanels) {
+			numVisiblePanels = n
+			initPanelSlider(numVisiblePanels)
 		}
-	},
-	on: {
-		panelchange: e => {
-			// Update panel ID displayed
-			elId.textContent = String(e.panelId)
-		},
-		animate: e => {
-			// Update panel position displayed
-			elPos.textContent = e.panelFraction.toFixed(2)
-		}
-	}
+	})
 })
-
-// To cleanup:
-// slider.destroy()

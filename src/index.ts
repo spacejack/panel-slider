@@ -87,7 +87,8 @@ function PanelSlider ({
 			addListener(key, on[key]!)
 		}
 	}
-	const panelWidthPct = 100 / visiblePanels * 3
+
+	const panelWidthPct = 100 / visiblePanels
 	const panels = range(visiblePanels * 3).map(pid => Panel(
 		pid, panelWidthPct, Panel.EMPTY, panelClassName
 	))
@@ -112,7 +113,7 @@ function PanelSlider ({
 	/** Update our full width and panel width on resize */
 	function resize() {
 		const rc = dom.getBoundingClientRect()
-		panelWidth = rc.width
+		panelWidth = rc.width / visiblePanels
 		visibleWidth = panelWidth * visiblePanels
 		fullWidth = panelWidth * totalPanels
 		curPosX = -curPanel * panelWidth
@@ -125,18 +126,23 @@ function PanelSlider ({
 		/** Inclusive start/end panel indexes */
 		let iStart = Math.floor(totalPanels * x / fullWidth)
 		let iEnd = Math.min(
-			Math.ceil(totalPanels * (x + panelWidth) / fullWidth),
+			Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth),
 			totalPanels - 1
 		)
 		if (!fast) {
-			const n = iEnd - iStart + 1
-			if (n < panels.length) {
-				// Not a fast render, so render something to the extra panel
-				// TODO: Better algo to select panels to render...
-				if (iStart > 0) {
-					iStart -= 1 // render 1 extra to the left
+			// Render extrap panels outward from viewport edges.
+			// Start on the left side then alternate.
+			for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
+				if (i % 2 === 0) {
+					if (iStart > 0) {
+						iStart -= 1
+						n -= 1
+					}
 				} else {
-					iEnd = Math.min(iEnd + 1, totalPanels - 1)
+					if (iEnd < panels.length - 1) {
+						iEnd += 1
+						n -= 1
+					}
 				}
 			}
 		}
@@ -259,6 +265,7 @@ function PanelSlider ({
 		destPanel: number, dur = slideDuration, done?: (panelId: number) => void
 	) {
 		if (isAnimating) {
+			// TODO: Allow redirect
 			console.warn("Cannot animateTo - already animating")
 			return
 		}
