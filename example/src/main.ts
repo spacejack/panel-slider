@@ -100,6 +100,7 @@ function initPanelSlider (visiblePanels: number) {
 		totalPanels: NUM_PANELS,  // # of total panels
 		visiblePanels, // # of panels that fit on screen
 		initialPanel,
+		maxSwipePanels: visiblePanels === 1 ? 1 : 2 * visiblePanels,
 		slideDuration: 400,
 		panelClassName: 'panel',
 		// Callback that gets invoked when the PanelSlider needs

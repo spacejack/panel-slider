@@ -63,16 +63,18 @@ interface PanelSlider {
 /**
  * Creates a PanelSlider instance.
  */
-function PanelSlider ({
-	dom,
-	totalPanels, visiblePanels, initialPanel = 0,
-	slideDuration = PanelSlider.DEFAULT_SLIDE_DURATION,
-	dragThreshold, dragRatio, devices,
-	panelClassName = '',
-	on = {},
-	renderContent,
-	terp = PanelSlider.terp
-}: PanelSlider.Options): PanelSlider {
+function PanelSlider (cfg: PanelSlider.Options) {
+	cfg = {...cfg}
+	cfg.visiblePanels = cfg.visiblePanels || 1
+	cfg.initialPanel = cfg.initialPanel || 0
+	cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels
+	cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION
+	cfg.panelClassName = cfg.panelClassName || ''
+	cfg.dragRatio = cfg.dragRatio || 1.5
+	cfg.dragThreshold = cfg.dragThreshold || 12
+	cfg.on = cfg.on || {}
+	cfg.terp = cfg.terp || PanelSlider.terp
+
 	const emitters: PanelSlider.EventEmitters = {
 		dragstart: [],
 		drag: [],
@@ -82,29 +84,29 @@ function PanelSlider ({
 		animationstatechange: [],
 		panelchange: []
 	}
-	for (const key of Object.keys(on) as (keyof PanelSlider.EventListeners)[]) {
-		if (on[key] != null) {
-			addListener(key, on[key]!)
+	for (const key of Object.keys(cfg.on) as (keyof PanelSlider.EventListeners)[]) {
+		if (cfg.on[key] != null) {
+			addListener(key, cfg.on[key]!)
 		}
 	}
 
-	const panelWidthPct = 100 / visiblePanels
-	const panels = range(initialPanel, initialPanel + visiblePanels * 3).map(pid => Panel(
-		pid, panelWidthPct, Panel.EMPTY, panelClassName
+	const panelWidthPct = 100 / cfg.visiblePanels
+	const panels = range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(pid => Panel(
+		pid, panelWidthPct, Panel.EMPTY, cfg.panelClassName
 	))
-	dom.innerHTML = ''
+	cfg.dom.innerHTML = ''
 	for (const p of panels) {
-		p.state = renderContent(p)
-		dom.appendChild(p.dom)
+		p.state = cfg.renderContent(p)
+		cfg.dom.appendChild(p.dom)
 	}
 
 	// Will be computed on resize
 	let fullWidth = panels.length
-	let visibleWidth = visiblePanels
+	let visibleWidth = cfg.visiblePanels
 	/** Width of a panel in pixels */
 	let panelWidth = 1
 	/** Current Panel index */
-	let curPanel = initialPanel
+	let curPanel = cfg.initialPanel
 	/** Current viewport position in pixels (left edge) */
 	let curPosX = 0
 	/** Indicates panel animation loop is running */
@@ -112,10 +114,10 @@ function PanelSlider ({
 
 	/** Update our full width and panel width on resize */
 	function resize() {
-		const rc = dom.getBoundingClientRect()
-		panelWidth = rc.width / visiblePanels
-		visibleWidth = panelWidth * visiblePanels
-		fullWidth = panelWidth * totalPanels
+		const rc = cfg.dom.getBoundingClientRect()
+		panelWidth = rc.width / cfg.visiblePanels!
+		visibleWidth = panelWidth * cfg.visiblePanels!
+		fullWidth = panelWidth * cfg.totalPanels
 		curPosX = -curPanel * panelWidth
 		render()
 	}
@@ -124,10 +126,10 @@ function PanelSlider ({
 		// note that: curPosX = -curPanel * panelWidth
 		const x = Math.abs(curPosX)
 		/** Inclusive start/end panel indexes */
-		let iStart = Math.floor(totalPanels * x / fullWidth)
+		let iStart = Math.floor(cfg.totalPanels * x / fullWidth)
 		let iEnd = Math.min(
-			Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth),
-			totalPanels - 1
+			Math.ceil(cfg.totalPanels * (x + panelWidth * cfg.visiblePanels!) / fullWidth),
+			cfg.totalPanels - 1
 		)
 		//if (!fast) {
 		// Render extrap panels outward from viewport edges.
@@ -156,7 +158,7 @@ function PanelSlider ({
 			const panel = panels.find(p => p.index === i)
 			if (panel) {
 				if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
-					panel.state = renderContent(panel, fast)
+					panel.state = cfg.renderContent(panel, fast)
 				}
 				setPos3d(panel.dom, curPosX + i * panelWidth)
 				keepPanels[i] = panel
@@ -176,7 +178,7 @@ function PanelSlider ({
 				console.log(`updating panel: ${i}`)
 			}
 			panel.index = i
-			panel.state = renderContent(panel, fast)
+			panel.state = cfg.renderContent(panel, fast)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels[i] = panel
 		}
@@ -187,11 +189,11 @@ function PanelSlider ({
 		if (pid != null) {
 			const panel = panels.find(p => p.index === pid)
 			if (!panel) return false
-			panel.state = renderContent(panel)
+			panel.state = cfg.renderContent(panel)
 			return true
 		}
 		for (const panel of panels) {
-			panel.state = renderContent(panel)
+			panel.state = cfg.renderContent(panel)
 		}
 		return true
 	}
@@ -204,9 +206,9 @@ function PanelSlider ({
 
 	resize()
 
-	const dragger = Dragger(dom, {
-		dragThreshold, dragRatio,
-		devices,
+	const dragger = Dragger(cfg.dom, {
+		dragThreshold: cfg.dragThreshold, dragRatio: cfg.dragRatio,
+		devices: cfg.devices,
 		on: {
 			dragstart (e) {
 				emit(new PanelSlider.DragEvent('drag', e.x, 0))
@@ -247,25 +249,46 @@ function PanelSlider ({
 		}
 	})
 
-	function swipeAnim (xvel: number, done?: (panelId: number) => void) {
-		const x = curPosX + xvel * 0.5
-		let destination = clamp(Math.round(-x / panelWidth), 0, totalPanels - 1)
-		const p0 = curPanel
-		if (destination - p0 > visiblePanels) {
-			destination = p0 + visiblePanels
-		} else if (p0 - destination > visiblePanels) {
-			destination = p0 - visiblePanels
+	/**
+	 * @param xVelocity Speed of swipe in pixels/second
+	 * @param done callback when swipe ends
+	 */
+	function swipeAnim (xVelocity: number, done?: (panelId: number) => void) {
+		/** swipe velocity in px/s clamped to sane range */
+		const xvel = clamp(xVelocity, -10000, 10000)
+		/** max distance we can travel */
+		const maxDist = cfg.maxSwipePanels
+		/** Destination position */
+		const destX = curPosX + xvel * 0.5
+		/** Current index panel (where it is currently dragged to, not its resting position) */
+		const p0 = Math.floor(-curPosX / panelWidth)
+		/** Destination panel index */
+		let destPanel = Math.floor(-destX / panelWidth)
+		if (destPanel - p0 > cfg.maxSwipePanels!) {
+			destPanel = p0 + cfg.maxSwipePanels!
+		} else if (p0 - destPanel > cfg.maxSwipePanels!) {
+			destPanel = p0 - cfg.maxSwipePanels!
 		}
-		const dur = clamp(
-			slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)),
-			17, slideDuration
+		destPanel = clamp(destPanel, 0, cfg.totalPanels - 1)
+		/** How many "screens" of panels are we travelling across */
+		const unitDist = Math.abs((destPanel - p0) / cfg.visiblePanels!)
+		const dur = unitDist > 1
+			? Math.max(17, cfg.slideDuration! * Math.pow(unitDist, 0.5))
+			: Math.max(17, cfg.slideDuration! * unitDist)
+		console.log('xvel:', xvel.toFixed(2), 'dur:', dur, 'screenDist:', unitDist)
+		/** Animation duration */
+		/*let dur = clamp( // Compute for 1 or less screen widths
+			cfg.slideDuration! - (cfg.slideDuration! * (Math.abs(xvel / 25.0) / panelWidth)),
+			17, cfg.slideDuration!
 		)
-		animateTo(destination, dur, done)
+		// If travelling 2 or more screens, add duration
+		dur += screenDist >= 2 ? Math.pow(screenDist, 0.5) * 0.5 * cfg.slideDuration! : 0*/
+		animateTo(destPanel, dur, done)
 	}
 
 	/** Animate panels to the specified panelId */
 	function animateTo (
-		destPanel: number, dur = slideDuration, done?: (panelId: number) => void
+		destPanel: number, dur = cfg.slideDuration!, done?: (panelId: number) => void
 	) {
 		if (isAnimating) {
 			// TODO: Allow redirect
@@ -305,7 +328,7 @@ function PanelSlider ({
 			const destX = -destPanel * panelWidth
 			const totalT = t - startT
 			const animT = Math.min(totalT, dur)
-			curPosX = terp(startX, destX, animT / dur)
+			curPosX = cfg.terp!(startX, destX, animT / dur)
 			// Use a 'fast' render unless this is the last frame of the animation
 			const isLastFrame = totalT >= dur
 			render(!isLastFrame)
@@ -369,14 +392,14 @@ function PanelSlider ({
 		return panelId === curPanel
 			? Promise.resolve(panelId)
 			: new Promise<number>(r => {
-				animateTo(panelId, slideDuration, r)
+				animateTo(panelId, cfg.slideDuration, r)
 			})
 	}
 
 	/** Sets the current panel index immediately, no animation */
 	function setPanelImmediate (panelId: number) {
 		if (typeof panelId !== 'number' || !Number.isSafeInteger(panelId)
-			|| panelId < 0 || panelId >= totalPanels
+			|| panelId < 0 || panelId >= cfg.totalPanels
 		) {
 			throw new Error('Invalid panel')
 		}
@@ -387,7 +410,6 @@ function PanelSlider ({
 		}
 		curPanel = panelId
 		curPosX = -curPanel * panelWidth
-		//setX(dom, curPosX)
 		render()
 	}
 
@@ -399,7 +421,7 @@ function PanelSlider ({
 		Object.keys(emitters).forEach(k => {
 			emitters[k as PanelSlider.EventType].length = 0
 		})
-		dom = undefined as any
+		cfg.dom = undefined as any
 	}
 
 	window.addEventListener('resize', resize)
@@ -521,9 +543,11 @@ namespace PanelSlider {
 		/** Total number of panels with content */
 		totalPanels: number
 		/** Total number of visible panels that fit across the width of panel-set container */
-		visiblePanels: number
+		visiblePanels?: number
 		/** Starting panel */
 		initialPanel?: number
+		/** Maximum panels travelled from swipe (default visiblePanels) */
+		maxSwipePanels?: number
 		/** Duration of slide animation on release (default 500ms) */
 		slideDuration?: number
 		/** Horizontal distance threshold to initiate drag (default 12px) */
