@@ -3,6 +3,7 @@ import {clamp} from './math'
 import {setPos3d} from './transform'
 import Dragger from './Dragger'
 import Panel from './Panel'
+import * as gesture from './gesture'
 
 // tslint:disable unified-signatures
 
@@ -231,7 +232,6 @@ function PanelSlider (cfg: PanelSlider.Options) {
 			dragend (e) {
 				const ox = -curPanel * panelWidth
 				curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
-				//setX(dom, curPosX)
 				render()
 				swipeAnim(e.xv, pid => {
 					emit(new PanelSlider.ChangeEvent('panelchange', pid))
@@ -254,36 +254,15 @@ function PanelSlider (cfg: PanelSlider.Options) {
 	 * @param done callback when swipe ends
 	 */
 	function swipeAnim (xVelocity: number, done?: (panelId: number) => void) {
-		/** swipe velocity in px/s clamped to sane range */
-		const xvel = clamp(xVelocity, -10000, 10000)
-		/** max distance we can travel */
-		const maxDist = cfg.maxSwipePanels
-		/** Destination position */
-		const destX = curPosX + xvel * 0.5
-		/** Current index panel (where it is currently dragged to, not its resting position) */
-		const p0 = Math.floor(-curPosX / panelWidth)
-		/** Destination panel index */
-		let destPanel = Math.floor(-destX / panelWidth)
-		if (destPanel - p0 > cfg.maxSwipePanels!) {
-			destPanel = p0 + cfg.maxSwipePanels!
-		} else if (p0 - destPanel > cfg.maxSwipePanels!) {
-			destPanel = p0 - cfg.maxSwipePanels!
-		}
-		destPanel = clamp(destPanel, 0, cfg.totalPanels - 1)
-		/** How many "screens" of panels are we travelling across */
-		const unitDist = Math.abs((destPanel - p0) / cfg.visiblePanels!)
-		const dur = unitDist > 1
-			? Math.max(17, cfg.slideDuration! * Math.pow(unitDist, 0.5))
-			: Math.max(17, cfg.slideDuration! * unitDist)
-		console.log('xvel:', xvel.toFixed(2), 'dur:', dur, 'screenDist:', unitDist)
-		/** Animation duration */
-		/*let dur = clamp( // Compute for 1 or less screen widths
-			cfg.slideDuration! - (cfg.slideDuration! * (Math.abs(xvel / 25.0) / panelWidth)),
-			17, cfg.slideDuration!
-		)
-		// If travelling 2 or more screens, add duration
-		dur += screenDist >= 2 ? Math.pow(screenDist, 0.5) * 0.5 * cfg.slideDuration! : 0*/
-		animateTo(destPanel, dur, done)
+		const result = gesture.swipe({
+			panelId: curPanel,
+			x: curPosX, xv: xVelocity,
+			maxSwipePanels: cfg.maxSwipePanels!,
+			panelWidth,
+			slideDuration: cfg.slideDuration!,
+			totalPanels: cfg.totalPanels - (cfg.visiblePanels! - 1)
+		})
+		animateTo(result.panelId, result.duration, done)
 	}
 
 	/** Animate panels to the specified panelId */

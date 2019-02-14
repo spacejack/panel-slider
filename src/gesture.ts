@@ -1,0 +1,70 @@
+import {clamp} from './math'
+
+export interface SwipeOptions {
+	/** Current panel index */
+	panelId: number
+	/** Current drag position in pixels */
+	x: number
+	/** Velocity of swipe in pixels */
+	xv: number
+	/** Width of 1 panel in pixels */
+	panelWidth: number
+	/** Maximum swipe panel travel */
+	maxSwipePanels: number
+	/** Total # of panels */
+	totalPanels: number
+	/** Typical duration of 1 panel swipe */
+	slideDuration: number
+}
+
+/**
+ * Compute "throw" from swipe
+ */
+export function swipe ({
+	panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, slideDuration
+}: SwipeOptions) {
+	/** Minimum duration of animation */
+	const MIN_DUR_MS = 17
+	/** Max throw velocity */
+	const MAX_VEL = 10000
+	/* max distance we can travel */
+	//const MAX_DIST = maxSwipePanels
+	/** swipe velocity in px/s clamped to sane range */
+	const xvel = clamp(xv, -MAX_VEL, MAX_VEL)
+	/** Destination position */
+	const destX = x + xvel * 0.5
+	/** Current index panel (where it is currently dragged to, not its resting position) */
+	const p0 = Math.floor(-x / panelWidth)
+	/** Destination panel index */
+	let destPanel = Math.round(-destX / panelWidth)
+	if (destPanel - p0 > maxSwipePanels!) {
+		destPanel = p0 + maxSwipePanels!
+	} else if (p0 - destPanel > maxSwipePanels!) {
+		destPanel = p0 - maxSwipePanels!
+	}
+	destPanel = clamp(destPanel,
+		Math.max(0, panelId - maxSwipePanels!),
+		Math.min(totalPanels - 1, panelId + maxSwipePanels!)
+	)
+	/** How many panels (incl. fractions) are we travelling across */
+	const unitDist = Math.abs(destPanel * panelWidth - (-x)) / panelWidth
+	let dur = 0
+	if (unitDist > 1) {
+		// Compute a duration suitable for travelling multiple panels
+		dur = Math.max(
+			MIN_DUR_MS,
+			slideDuration! * Math.pow(unitDist, 0.5) * 1.0
+		)
+	} else {
+		// Compute a duration suitable for 1 or less panel travel
+		dur = Math.max(MIN_DUR_MS, slideDuration! * unitDist)// (unitDist * cfg.visiblePanels!))
+		if (Math.sign(unitDist) === Math.sign(xvel)) {
+			let timeScale = Math.abs(xvel) / (MAX_VEL / 10)
+			if (timeScale < 1) {
+				timeScale = 1
+			}
+			dur = Math.max(MIN_DUR_MS, dur / timeScale)
+		}
+	}
+	return {panelId: destPanel, duration: dur}
+}
