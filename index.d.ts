@@ -58,7 +58,7 @@ interface PanelSlider {
 /**
  * Creates a PanelSlider instance.
  */
-declare function PanelSlider({ dom, totalPanels, visiblePanels, initialPanel, slideDuration, dragThreshold, dragRatio, devices, panelClassName, on, renderContent, terp }: PanelSlider.Options): PanelSlider;
+declare function PanelSlider(cfg: PanelSlider.Options): PanelSlider;
 /**
  * PanelSlider static methods and properties.
  */
@@ -131,9 +131,11 @@ declare namespace PanelSlider {
         /** Total number of panels with content */
         totalPanels: number;
         /** Total number of visible panels that fit across the width of panel-set container */
-        visiblePanels: number;
+        visiblePanels?: number;
         /** Starting panel */
         initialPanel?: number;
+        /** Maximum panels travelled from swipe (default visiblePanels) */
+        maxSwipePanels?: number;
         /** Duration of slide animation on release (default 500ms) */
         slideDuration?: number;
         /** Horizontal distance threshold to initiate drag (default 12px) */

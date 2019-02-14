@@ -328,7 +328,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.default = Speedo;
 });
 
-},{"./math":6}],4:[function(require,module,exports){
+},{"./math":7}],4:[function(require,module,exports){
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
@@ -358,6 +358,68 @@ var __extends = (this && this.__extends) || (function () {
 });
 
 },{}],5:[function(require,module,exports){
+(function (factory) {
+    if (typeof module === "object" && typeof module.exports === "object") {
+        var v = factory(require, exports);
+        if (v !== undefined) module.exports = v;
+    }
+    else if (typeof define === "function" && define.amd) {
+        define(["require", "exports", "./math"], factory);
+    }
+})(function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    var math_1 = require("./math");
+    /**
+     * Compute "throw" from swipe
+     */
+    function swipe(_a) {
+        var panelId = _a.panelId, x = _a.x, xv = _a.xv, panelWidth = _a.panelWidth, maxSwipePanels = _a.maxSwipePanels, totalPanels = _a.totalPanels, slideDuration = _a.slideDuration;
+        /** Minimum duration of animation */
+        var MIN_DUR_MS = 17;
+        /** Max throw velocity */
+        var MAX_VEL = 10000;
+        /* max distance we can travel */
+        //const MAX_DIST = maxSwipePanels
+        /** swipe velocity in px/s clamped to sane range */
+        var xvel = math_1.clamp(xv, -MAX_VEL, MAX_VEL);
+        /** Destination position */
+        var destX = x + xvel * 0.5;
+        /** Current index panel (where it is currently dragged to, not its resting position) */
+        var p0 = Math.floor(-x / panelWidth);
+        /** Destination panel index */
+        var destPanel = Math.round(-destX / panelWidth);
+        if (destPanel - p0 > maxSwipePanels) {
+            destPanel = p0 + maxSwipePanels;
+        }
+        else if (p0 - destPanel > maxSwipePanels) {
+            destPanel = p0 - maxSwipePanels;
+        }
+        destPanel = math_1.clamp(destPanel, Math.max(0, panelId - maxSwipePanels), Math.min(totalPanels - 1, panelId + maxSwipePanels));
+        /** How many panels (incl. fractions) are we travelling across */
+        var unitDist = Math.abs(destPanel * panelWidth - (-x)) / panelWidth;
+        var dur = 0;
+        if (unitDist > 1) {
+            // Compute a duration suitable for travelling multiple panels
+            dur = Math.max(MIN_DUR_MS, slideDuration * Math.pow(unitDist, 0.5) * 1.0);
+        }
+        else {
+            // Compute a duration suitable for 1 or less panel travel
+            dur = Math.max(MIN_DUR_MS, slideDuration * unitDist); // (unitDist * cfg.visiblePanels!))
+            if (Math.sign(unitDist) === Math.sign(xvel)) {
+                var timeScale = Math.abs(xvel) / (MAX_VEL / 10);
+                if (timeScale < 1) {
+                    timeScale = 1;
+                }
+                dur = Math.max(MIN_DUR_MS, dur / timeScale);
+            }
+        }
+        return { panelId: destPanel, duration: dur };
+    }
+    exports.swipe = swipe;
+});
+
+},{"./math":7}],6:[function(require,module,exports){
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -371,13 +433,24 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
         var v = factory(require, exports);
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "./array", "./math", "./transform", "./Dragger", "./Panel"], factory);
+        define(["require", "exports", "./array", "./math", "./transform", "./Dragger", "./Panel", "./gesture"], factory);
     }
 })(function (require, exports) {
     "use strict";
@@ -387,11 +460,21 @@ var __extends = (this && this.__extends) || (function () {
     var transform_1 = require("./transform");
     var Dragger_1 = require("./Dragger");
     var Panel_1 = require("./Panel");
+    var gesture = require("./gesture");
     /**
      * Creates a PanelSlider instance.
      */
-    function PanelSlider(_a) {
-        var dom = _a.dom, totalPanels = _a.totalPanels, visiblePanels = _a.visiblePanels, _b = _a.initialPanel, initialPanel = _b === void 0 ? 0 : _b, _c = _a.slideDuration, slideDuration = _c === void 0 ? PanelSlider.DEFAULT_SLIDE_DURATION : _c, dragThreshold = _a.dragThreshold, dragRatio = _a.dragRatio, devices = _a.devices, _d = _a.panelClassName, panelClassName = _d === void 0 ? '' : _d, _e = _a.on, on = _e === void 0 ? {} : _e, renderContent = _a.renderContent, _f = _a.terp, terp = _f === void 0 ? PanelSlider.terp : _f;
+    function PanelSlider(cfg) {
+        cfg = __assign({}, cfg);
+        cfg.visiblePanels = cfg.visiblePanels || 1;
+        cfg.initialPanel = cfg.initialPanel || 0;
+        cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels;
+        cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION;
+        cfg.panelClassName = cfg.panelClassName || '';
+        cfg.dragRatio = cfg.dragRatio || 1.5;
+        cfg.dragThreshold = cfg.dragThreshold || 12;
+        cfg.on = cfg.on || {};
+        cfg.terp = cfg.terp || PanelSlider.terp;
         var emitters = {
             dragstart: [],
             drag: [],
@@ -401,37 +484,37 @@ var __extends = (this && this.__extends) || (function () {
             animationstatechange: [],
             panelchange: []
         };
-        for (var _i = 0, _g = Object.keys(on); _i < _g.length; _i++) {
-            var key = _g[_i];
-            if (on[key] != null) {
-                addListener(key, on[key]);
+        for (var _i = 0, _a = Object.keys(cfg.on); _i < _a.length; _i++) {
+            var key = _a[_i];
+            if (cfg.on[key] != null) {
+                addListener(key, cfg.on[key]);
             }
         }
-        var panelWidthPct = 100 / visiblePanels;
-        var panels = array_1.range(initialPanel, initialPanel + visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, panelClassName); });
-        dom.innerHTML = '';
-        for (var _h = 0, panels_1 = panels; _h < panels_1.length; _h++) {
-            var p = panels_1[_h];
-            p.state = renderContent(p);
-            dom.appendChild(p.dom);
+        var panelWidthPct = 100 / cfg.visiblePanels;
+        var panels = array_1.range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, cfg.panelClassName); });
+        cfg.dom.innerHTML = '';
+        for (var _b = 0, panels_1 = panels; _b < panels_1.length; _b++) {
+            var p = panels_1[_b];
+            p.state = cfg.renderContent(p);
+            cfg.dom.appendChild(p.dom);
         }
         // Will be computed on resize
         var fullWidth = panels.length;
-        var visibleWidth = visiblePanels;
+        var visibleWidth = cfg.visiblePanels;
         /** Width of a panel in pixels */
         var panelWidth = 1;
         /** Current Panel index */
-        var curPanel = initialPanel;
+        var curPanel = cfg.initialPanel;
         /** Current viewport position in pixels (left edge) */
         var curPosX = 0;
         /** Indicates panel animation loop is running */
         var isAnimating = false;
         /** Update our full width and panel width on resize */
         function resize() {
-            var rc = dom.getBoundingClientRect();
-            panelWidth = rc.width / visiblePanels;
-            visibleWidth = panelWidth * visiblePanels;
-            fullWidth = panelWidth * totalPanels;
+            var rc = cfg.dom.getBoundingClientRect();
+            panelWidth = rc.width / cfg.visiblePanels;
+            visibleWidth = panelWidth * cfg.visiblePanels;
+            fullWidth = panelWidth * cfg.totalPanels;
             curPosX = -curPanel * panelWidth;
             render();
         }
@@ -439,8 +522,8 @@ var __extends = (this && this.__extends) || (function () {
             // note that: curPosX = -curPanel * panelWidth
             var x = Math.abs(curPosX);
             /** Inclusive start/end panel indexes */
-            var iStart = Math.floor(totalPanels * x / fullWidth);
-            var iEnd = Math.min(Math.ceil(totalPanels * (x + panelWidth * visiblePanels) / fullWidth), totalPanels - 1);
+            var iStart = Math.floor(cfg.totalPanels * x / fullWidth);
+            var iEnd = Math.min(Math.ceil(cfg.totalPanels * (x + panelWidth * cfg.visiblePanels) / fullWidth), cfg.totalPanels - 1);
             //if (!fast) {
             // Render extrap panels outward from viewport edges.
             // Start on the left side then alternate.
@@ -468,7 +551,7 @@ var __extends = (this && this.__extends) || (function () {
                 var panel = panels.find(function (p) { return p.index === i; });
                 if (panel) {
                     if (panel.state < Panel_1.default.PRERENDERED || (!fast && panel.state < Panel_1.default.FETCHING)) {
-                        panel.state = renderContent(panel, fast);
+                        panel.state = cfg.renderContent(panel, fast);
                     }
                     transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
                     keepPanels[i] = panel;
@@ -494,7 +577,7 @@ var __extends = (this && this.__extends) || (function () {
                     console.log("updating panel: " + i);
                 }
                 panel.index = i;
-                panel.state = renderContent(panel, fast);
+                panel.state = cfg.renderContent(panel, fast);
                 transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
                 keepPanels[i] = panel;
             }
@@ -505,12 +588,12 @@ var __extends = (this && this.__extends) || (function () {
                 var panel = panels.find(function (p) { return p.index === pid; });
                 if (!panel)
                     return false;
-                panel.state = renderContent(panel);
+                panel.state = cfg.renderContent(panel);
                 return true;
             }
             for (var _i = 0, panels_2 = panels; _i < panels_2.length; _i++) {
                 var panel = panels_2[_i];
-                panel.state = renderContent(panel);
+                panel.state = cfg.renderContent(panel);
             }
             return true;
         }
@@ -521,9 +604,9 @@ var __extends = (this && this.__extends) || (function () {
             }
         }
         resize();
-        var dragger = Dragger_1.default(dom, {
-            dragThreshold: dragThreshold, dragRatio: dragRatio,
-            devices: devices,
+        var dragger = Dragger_1.default(cfg.dom, {
+            dragThreshold: cfg.dragThreshold, dragRatio: cfg.dragRatio,
+            devices: cfg.devices,
             on: {
                 dragstart: function (e) {
                     emit(new PanelSlider.DragEvent('drag', e.x, 0));
@@ -544,7 +627,6 @@ var __extends = (this && this.__extends) || (function () {
                 dragend: function (e) {
                     var ox = -curPanel * panelWidth;
                     curPosX = Math.round(math_1.clamp(ox + e.x, -(fullWidth - panelWidth), 0));
-                    //setX(dom, curPosX)
                     render();
                     swipeAnim(e.xv, function (pid) {
                         emit(new PanelSlider.ChangeEvent('panelchange', pid));
@@ -559,22 +641,24 @@ var __extends = (this && this.__extends) || (function () {
                 }
             }
         });
-        function swipeAnim(xvel, done) {
-            var x = curPosX + xvel * 0.5;
-            var destination = math_1.clamp(Math.round(-x / panelWidth), 0, totalPanels - 1);
-            var p0 = curPanel;
-            if (destination - p0 > visiblePanels) {
-                destination = p0 + visiblePanels;
-            }
-            else if (p0 - destination > visiblePanels) {
-                destination = p0 - visiblePanels;
-            }
-            var dur = math_1.clamp(slideDuration - (slideDuration * (Math.abs(xvel / 10.0) / panelWidth)), 17, slideDuration);
-            animateTo(destination, dur, done);
+        /**
+         * @param xVelocity Speed of swipe in pixels/second
+         * @param done callback when swipe ends
+         */
+        function swipeAnim(xVelocity, done) {
+            var result = gesture.swipe({
+                panelId: curPanel,
+                x: curPosX, xv: xVelocity,
+                maxSwipePanels: cfg.maxSwipePanels,
+                panelWidth: panelWidth,
+                slideDuration: cfg.slideDuration,
+                totalPanels: cfg.totalPanels - (cfg.visiblePanels - 1)
+            });
+            animateTo(result.panelId, result.duration, done);
         }
         /** Animate panels to the specified panelId */
         function animateTo(destPanel, dur, done) {
-            if (dur === void 0) { dur = slideDuration; }
+            if (dur === void 0) { dur = cfg.slideDuration; }
             if (isAnimating) {
                 // TODO: Allow redirect
                 console.warn("Cannot animateTo - already animating");
@@ -606,7 +690,7 @@ var __extends = (this && this.__extends) || (function () {
                 var destX = -destPanel * panelWidth;
                 var totalT = t - startT;
                 var animT = Math.min(totalT, dur);
-                curPosX = terp(startX, destX, animT / dur);
+                curPosX = cfg.terp(startX, destX, animT / dur);
                 // Use a 'fast' render unless this is the last frame of the animation
                 var isLastFrame = totalT >= dur;
                 render(!isLastFrame);
@@ -658,13 +742,13 @@ var __extends = (this && this.__extends) || (function () {
             return panelId === curPanel
                 ? Promise.resolve(panelId)
                 : new Promise(function (r) {
-                    animateTo(panelId, slideDuration, r);
+                    animateTo(panelId, cfg.slideDuration, r);
                 });
         }
         /** Sets the current panel index immediately, no animation */
         function setPanelImmediate(panelId) {
             if (typeof panelId !== 'number' || !Number.isSafeInteger(panelId)
-                || panelId < 0 || panelId >= totalPanels) {
+                || panelId < 0 || panelId >= cfg.totalPanels) {
                 throw new Error('Invalid panel');
             }
             if (isAnimating) {
@@ -675,7 +759,6 @@ var __extends = (this && this.__extends) || (function () {
             }
             curPanel = panelId;
             curPosX = -curPanel * panelWidth;
-            //setX(dom, curPosX)
             render();
         }
         /** Remove all event handlers, cleanup streams etc. */
@@ -686,7 +769,7 @@ var __extends = (this && this.__extends) || (function () {
             Object.keys(emitters).forEach(function (k) {
                 emitters[k].length = 0;
             });
-            dom = undefined;
+            cfg.dom = undefined;
         }
         window.addEventListener('resize', resize);
         return {
@@ -777,7 +860,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.default = PanelSlider;
 });
 
-},{"./Dragger":1,"./Panel":2,"./array":4,"./math":6,"./transform":7}],6:[function(require,module,exports){
+},{"./Dragger":1,"./Panel":2,"./array":4,"./gesture":5,"./math":7,"./transform":8}],7:[function(require,module,exports){
 // Math utils
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
@@ -802,7 +885,7 @@ var __extends = (this && this.__extends) || (function () {
     exports.pmod = pmod;
 });
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // Determine style names (if prefix required)
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {
@@ -860,5 +943,5 @@ var __extends = (this && this.__extends) || (function () {
     exports.setPos3d = setPos3d;
 });
 
-},{}]},{},[5])(5)
+},{}]},{},[6])(6)
 });

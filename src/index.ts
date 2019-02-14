@@ -64,7 +64,7 @@ interface PanelSlider {
 /**
  * Creates a PanelSlider instance.
  */
-function PanelSlider (cfg: PanelSlider.Options) {
+function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	cfg = {...cfg}
 	cfg.visiblePanels = cfg.visiblePanels || 1
 	cfg.initialPanel = cfg.initialPanel || 0
