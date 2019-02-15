@@ -533,14 +533,14 @@ function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, slideD
     let dur = 0;
     if (absUnitDist > 1) {
         // Compute a duration suitable for travelling multiple panels
-        dur = Math.max(MIN_DUR_MS, slideDuration * Math.pow(absUnitDist, 0.5) * 1.0);
+        dur = Math.max(MIN_DUR_MS, slideDuration * Math.pow(absUnitDist, 0.25) * 1.0);
     }
     else {
         // Compute a duration suitable for 1 or less panel travel
         dur = Math.max(MIN_DUR_MS, slideDuration * absUnitDist); //(absUnitDist * cfg.visiblePanels!))
-        if (Math.sign(unitDist) === Math.sign(xvel)) {
+        if (Math.sign(unitDist) === -Math.sign(xvel)) {
             // Swipe in same direction of travel - speed up animation relative to swipe speed
-            const timeScale = Math.max(Math.abs(xvel) / (MAX_VEL / 10), 1);
+            const timeScale = Math.max(Math.abs(xvel / 1000), 1);
             dur = Math.max(MIN_DUR_MS, dur / timeScale);
         }
         else {
