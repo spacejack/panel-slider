@@ -47,23 +47,24 @@ export function swipe ({
 		Math.min(totalPanels - 1, panelId + maxSwipePanels!)
 	)
 	/** How many panels (incl. fractions) are we travelling across */
-	const unitDist = Math.abs(destPanel * panelWidth - (-x)) / panelWidth
+	const unitDist = (destPanel * panelWidth - (-x)) / panelWidth
+	const absUnitDist = Math.abs(unitDist)
 	let dur = 0
-	if (unitDist > 1) {
+	if (absUnitDist > 1) {
 		// Compute a duration suitable for travelling multiple panels
 		dur = Math.max(
 			MIN_DUR_MS,
-			slideDuration! * Math.pow(unitDist, 0.5) * 1.0
+			slideDuration! * Math.pow(absUnitDist, 0.5) * 1.0
 		)
 	} else {
 		// Compute a duration suitable for 1 or less panel travel
-		dur = Math.max(MIN_DUR_MS, slideDuration! * unitDist)// (unitDist * cfg.visiblePanels!))
+		dur = Math.max(MIN_DUR_MS, slideDuration! * absUnitDist) //(absUnitDist * cfg.visiblePanels!))
 		if (Math.sign(unitDist) === Math.sign(xvel)) {
-			let timeScale = Math.abs(xvel) / (MAX_VEL / 10)
-			if (timeScale < 1) {
-				timeScale = 1
-			}
+			// Swipe in same direction of travel - speed up animation relative to swipe speed
+			const timeScale = Math.max(Math.abs(xvel) / (MAX_VEL / 10), 1)
 			dur = Math.max(MIN_DUR_MS, dur / timeScale)
+		} else {
+			// Swipe in opposite direction -- TODO: anything?
 		}
 	}
 	return {panelId: destPanel, duration: dur}
