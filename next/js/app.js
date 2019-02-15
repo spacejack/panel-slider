@@ -285,7 +285,7 @@ function Dragger(el, { on = {}, dragThreshold = DEFAULT_DRAG_THRESHOLD, dragRati
         dragStart.x = x;
         dragStart.y = y;
         speedo.start(0, Date.now() / 1000);
-        document.addEventListener('scroll', onScroll, true);
+        el.addEventListener('scroll', onScroll, true);
         on.devicepress && on.devicepress(e);
     }
     function onMove(x, y, e) {
@@ -346,7 +346,7 @@ function Dragger(el, { on = {}, dragThreshold = DEFAULT_DRAG_THRESHOLD, dragRati
             el.removeEventListener('touchmove', onTouchMove);
             el.removeEventListener('touchend', onTouchEnd);
         }
-        document.removeEventListener('scroll', onScroll, true);
+        el.removeEventListener('scroll', onScroll, true);
         pressed = false;
         if (isDragging) {
             isDragging = false;
@@ -360,7 +360,7 @@ function Dragger(el, { on = {}, dragThreshold = DEFAULT_DRAG_THRESHOLD, dragRati
         el.removeEventListener('touchstart', onTouchStart);
         el.removeEventListener('touchend', onTouchEnd);
         el.removeEventListener('touchmove', onTouchMove);
-        document.removeEventListener('scroll', onScroll, true);
+        el.removeEventListener('scroll', onScroll, true);
     }
     // Initialize the input listeners we want
     if (!devices || devices.indexOf('mouse') >= 0) {
