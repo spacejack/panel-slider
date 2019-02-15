@@ -49,7 +49,7 @@ const elId = $e('panelId');
 /** Element to display live panel position */
 const elPos = $e('panelPos');
 const NUM_PANELS = 101;
-const MIN_PANEL_WIDTH = 480;
+const MIN_PANEL_WIDTH = 360;
 /** Create a page button element */
 function createPageButton(panelId) {
     const b = document.createElement('button');
@@ -128,7 +128,7 @@ function initPanelSlider(visiblePanels) {
         totalPanels: NUM_PANELS,
         visiblePanels,
         initialPanel,
-        maxSwipePanels: visiblePanels === 1 ? 1 : 2 * visiblePanels,
+        maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
         slideDuration: 400,
         panelClassName: 'panel',
         // Callback that gets invoked when the PanelSlider needs
