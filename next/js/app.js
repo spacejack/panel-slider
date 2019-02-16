@@ -299,7 +299,7 @@ function renderIntro(dom) {
     div.innerHTML = `<h2>Panel Slider Demo</h2>
 <div class="lg-lt">◀️ ▶️</div>
 <p>Swipe left or right to navigate.</p>
-<p>Or use the buttons above.</p>
+<p>Panel content is loaded asynchronously.</p>
 <p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`;
     dom.innerHTML = '';
     dom.appendChild(div);
@@ -661,7 +661,6 @@ exports.swipe = swipe;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const array_1 = require("./array");
-const math_1 = require("./math");
 const transform_1 = require("./transform");
 const Dragger_1 = require("./Dragger");
 const Panel_1 = require("./Panel");
@@ -712,6 +711,8 @@ function PanelSlider(cfg) {
     let curPosX = 0;
     /** Indicates panel animation loop is running */
     let isAnimating = false;
+    /** Overscroll */
+    const overscroll = 1;
     /** Update our full width and panel width on resize */
     function resize() {
         const rc = cfg.dom.getBoundingClientRect();
@@ -721,14 +722,27 @@ function PanelSlider(cfg) {
         curPosX = -curPanel * panelWidth;
         render();
     }
+    /** Applies averscroll dampening if dragged past edges */
+    function applyOverscroll(x) {
+        if (x > 0) {
+            const xp = Math.min(1, x / (overscroll * panelWidth));
+            return xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth;
+        }
+        const xMax = fullWidth - panelWidth * cfg.visiblePanels;
+        if (x < -xMax) {
+            const dx = Math.abs(x - (-xMax));
+            const xp = Math.min(1, dx / (overscroll * panelWidth));
+            return -xMax - xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth;
+        }
+        return x;
+    }
     function render(fast) {
         // note that: curPosX = -curPanel * panelWidth
         const x = Math.abs(curPosX);
         /** Inclusive start/end panel indexes */
         let iStart = Math.floor(cfg.totalPanels * x / fullWidth);
         let iEnd = Math.min(Math.ceil(cfg.totalPanels * (x + panelWidth * cfg.visiblePanels) / fullWidth), cfg.totalPanels - 1);
-        //if (!fast) {
-        // Render extrap panels outward from viewport edges.
+        // Render extra panels outward from viewport edges.
         // Start on the left side then alternate.
         for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
             if (i % 2 === 0) {
@@ -744,7 +758,6 @@ function PanelSlider(cfg) {
                 }
             }
         }
-        //}
         /** Cached panels that are still valid */
         const keepPanels = Object.create(null);
         /** ids of panels that were not cached */
@@ -810,7 +823,8 @@ function PanelSlider(cfg) {
             },
             dragmove(e) {
                 const ox = -curPanel * panelWidth;
-                curPosX = Math.round(math_1.clamp(ox + e.x, -(fullWidth - panelWidth), 0));
+                //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+                curPosX = applyOverscroll(ox + e.x);
                 render();
                 emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
                 emit(new PanelSlider.DragEvent('drag', e.x, e.xv));
@@ -823,7 +837,8 @@ function PanelSlider(cfg) {
             },
             dragend(e) {
                 const ox = -curPanel * panelWidth;
-                curPosX = Math.round(math_1.clamp(ox + e.x, -(fullWidth - panelWidth), 0));
+                //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+                curPosX = applyOverscroll(Math.round(ox + e.x));
                 render();
                 swipeAnim(e.xv, pid => {
                     emit(new PanelSlider.ChangeEvent('panelchange', pid));
@@ -1042,7 +1057,7 @@ function PanelSlider(cfg) {
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;
 
-},{"./Dragger":4,"./Panel":5,"./array":7,"./gesture":8,"./math":10,"./transform":11}],10:[function(require,module,exports){
+},{"./Dragger":4,"./Panel":5,"./array":7,"./gesture":8,"./transform":11}],10:[function(require,module,exports){
 "use strict";
 // Math utils
 Object.defineProperty(exports, "__esModule", { value: true });
