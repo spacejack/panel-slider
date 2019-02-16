@@ -1,15 +1,19 @@
+// This is a placeholder module that generates example content
+// from some public APIs.
+// This is used to demonstrate panels having async content.
+
 const cache = new Map<number, string[] | Promise<string[]>>()
 
 /**
- * Return what's available but don't initiate any fetch.
+ * Return what's available for this panel but don't initiate any fetch.
  */
-export function peek (id: number): string[] | Promise<string[]> | undefined {
-	return cache.get(id)
+export function peek (panelId: number): string[] | Promise<string[]> | undefined {
+	return cache.get(panelId)
 }
 
 /**
  * Return content if ready as an array.
- * Otherwise return a promise - initiate a fetch
+ * Otherwise return a promise; initiate a fetch
  * or return an already pending promise.
  */
 export function get (id: number): string[] | Promise<string[]> {

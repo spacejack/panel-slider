@@ -259,7 +259,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			x: curPosX, xv: xVelocity,
 			maxSwipePanels: cfg.maxSwipePanels!,
 			panelWidth,
-			slideDuration: cfg.slideDuration!,
+			unitDuration: cfg.slideDuration!,
 			totalPanels: cfg.totalPanels - (cfg.visiblePanels! - 1)
 		})
 		animateTo(result.panelId, result.duration, done)

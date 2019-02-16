@@ -374,7 +374,7 @@ var __extends = (this && this.__extends) || (function () {
      * Compute "throw" from swipe
      */
     function swipe(_a) {
-        var panelId = _a.panelId, x = _a.x, xv = _a.xv, panelWidth = _a.panelWidth, maxSwipePanels = _a.maxSwipePanels, totalPanels = _a.totalPanels, slideDuration = _a.slideDuration;
+        var panelId = _a.panelId, x = _a.x, xv = _a.xv, panelWidth = _a.panelWidth, maxSwipePanels = _a.maxSwipePanels, totalPanels = _a.totalPanels, unitDuration = _a.unitDuration;
         /** Minimum duration of animation */
         var MIN_DUR_MS = 17;
         /** Max throw velocity */
@@ -399,14 +399,15 @@ var __extends = (this && this.__extends) || (function () {
         /** How many panels (incl. fractions) are we travelling across */
         var unitDist = (destPanel * panelWidth - (-x)) / panelWidth;
         var absUnitDist = Math.abs(unitDist);
+        /** Duration of the animation */
         var dur = 0;
         if (absUnitDist > 1) {
             // Compute a duration suitable for travelling multiple panels
-            dur = Math.max(MIN_DUR_MS, slideDuration * Math.pow(absUnitDist, 0.25) * 1.0);
+            dur = Math.max(MIN_DUR_MS, unitDuration * Math.pow(absUnitDist, 0.25) * 1.0);
         }
         else {
             // Compute a duration suitable for 1 or less panel travel
-            dur = Math.max(MIN_DUR_MS, slideDuration * absUnitDist); //(absUnitDist * cfg.visiblePanels!))
+            dur = Math.max(MIN_DUR_MS, unitDuration * absUnitDist); //(absUnitDist * cfg.visiblePanels))
             if (Math.sign(unitDist) === -Math.sign(xvel)) {
                 // Swipe in same direction of travel - speed up animation relative to swipe speed
                 var timeScale = Math.max(Math.abs(xvel / 1000), 1);
@@ -653,7 +654,7 @@ var __assign = (this && this.__assign) || function () {
                 x: curPosX, xv: xVelocity,
                 maxSwipePanels: cfg.maxSwipePanels,
                 panelWidth: panelWidth,
-                slideDuration: cfg.slideDuration,
+                unitDuration: cfg.slideDuration,
                 totalPanels: cfg.totalPanels - (cfg.visiblePanels - 1)
             });
             animateTo(result.panelId, result.duration, done);
