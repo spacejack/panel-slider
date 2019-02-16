@@ -741,11 +741,12 @@ var __assign = (this && this.__assign) || function () {
          * so the result index may not be what was
          * requested or the promise may not resolve.
          */
-        function setPanel(panelId) {
+        function setPanel(panelId, duration) {
+            if (duration === void 0) { duration = cfg.slideDuration; }
             return panelId === curPanel
                 ? Promise.resolve(panelId)
                 : new Promise(function (r) {
-                    animateTo(panelId, cfg.slideDuration, r);
+                    animateTo(panelId, duration, r);
                 });
         }
         /** Sets the current panel index immediately, no animation */

@@ -8,6 +8,7 @@ let slider: PanelSlider
 
 const NUM_PANELS = 101
 const MIN_PANEL_WIDTH = 360
+const SLIDE_DURATION = 400
 
 /**
  * (Re)Create & configure a PanelSlider instance
@@ -24,7 +25,7 @@ function initPanelSlider (visiblePanels: number) {
 		visiblePanels, // # of panels that fit on screen
 		initialPanel,
 		maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
-		slideDuration: 400,
+		slideDuration: SLIDE_DURATION,
 		panelClassName: 'panel',
 		// Callback that gets invoked when the PanelSlider needs
 		// to render this panel.
@@ -81,20 +82,26 @@ function calcVisiblePanels() {
 
 /** Handle nav page button click */
 function onNavChange (e: ui.NavEvent) {
-	let panelId = slider.getPanel()
+	const panelId0 = slider.getPanel()
+	let panelId = panelId0
 	if (e.type === 'goto') {
 		panelId = e.id * 10
 	} else if (e.type === 'skip') {
 		const skip = Math.abs(e.id) <= 1
 			? e.id
 			: Math.sign(e.id) * numVisiblePanels
-		panelId = clamp(panelId + skip, 0, NUM_PANELS - 1)
+		panelId += skip
 	}
+	panelId = clamp(panelId, 0, NUM_PANELS - numVisiblePanels)
+	const duration = SLIDE_DURATION * Math.pow(
+		Math.max(Math.abs(panelId - panelId0), 1),
+		0.25
+	)
 	// User clicked a nav button for this panel ID.
 	// Fetch content immediately if it's not already available...
 	content.get(panelId)
 	// Send the PanelSlider there
-	slider.setPanel(panelId).then(pid => {
+	slider.setPanel(panelId, duration).then(pid => {
 		ui.elements.panelId.textContent = String(pid)
 	})
 }

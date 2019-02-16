@@ -33,8 +33,12 @@ interface PanelSlider {
     off(eventType: 'panelchange', cb: (e: PanelSlider.ChangeEvent) => void): void;
     /** Gets the current panel */
     getPanel(): number;
-    /** Sets the current panel - animates to position */
-    setPanel(panelId: number): Promise<number>;
+    /**
+     * Sets the current panel - animates to position.
+     * @param panelId The panel index to go to
+     * @param duration Duration in ms. If omitted, the configured default is used.
+     */
+    setPanel(panelId: number, duration?: number): Promise<number>;
     /** Sets the current panel immediately, no animation */
     setPanelImmediate(panelId: number): void;
     /** Gets the current root element & panel sizes */
