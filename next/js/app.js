@@ -71,6 +71,10 @@ function initPanelSlider(visiblePanels) {
         // fast  - a boolean indicating if this is a 'fast' (animating)
         //         frame, in which case we should skip async/heavy tasks.
         renderContent: (panel, fast) => {
+            if (panel.index === 0) {
+                ui.renderIntro(panel.dom);
+                return Panel_1.default.RENDERED;
+            }
             // Try to get 'ready' content for this panel
             let c = content.peek(panel.index);
             // If it's ready to use, we got an array of strings
@@ -146,6 +150,7 @@ function initNav() {
     const navItems = [];
     for (let i = 0; i < NUM_PANELS; i += 10) {
         navItems.push(String(i));
+        //navItems.push(i === 0 ? '⌂' : String(i))
     }
     ui.buildNav(navItems, onNavChange);
 }
@@ -221,10 +226,10 @@ function buildNav(items, onNav) {
     });
     btn.classList.add('mq-lp');
     rnav.appendChild(btn);
-    rnav.appendChild(createButton('⯇', () => {
+    rnav.appendChild(createButton('◀️', () => {
         onNav({ type: 'skip', id: -1 });
     }));
-    rnav.appendChild(createButton('⯈', () => {
+    rnav.appendChild(createButton('▶️', () => {
         onNav({ type: 'skip', id: 1 });
     }));
     btn = createButton('⏩', () => {
@@ -288,6 +293,19 @@ function preRenderPanelContent(dom, pid, text) {
     return div;
 }
 exports.preRenderPanelContent = preRenderPanelContent;
+function renderIntro(dom) {
+    const div = document.createElement('div');
+    div.className = 'center';
+    div.innerHTML = `<h2>Panel Slider Demo</h2>
+<div class="lg-lt">◀️ ▶️</div>
+<p>Swipe left or right to navigate.</p>
+<p>Or use the buttons above.</p>
+<p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`;
+    dom.innerHTML = '';
+    dom.appendChild(div);
+    return div;
+}
+exports.renderIntro = renderIntro;
 
 },{}],4:[function(require,module,exports){
 "use strict";
