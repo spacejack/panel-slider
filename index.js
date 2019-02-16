@@ -884,10 +884,15 @@ var __assign = (this && this.__assign) || function () {
             return RenderEvent;
         }());
         PanelSlider.RenderEvent = RenderEvent;
+        /** Indicates the panel is empty after renderContent */
         PanelSlider.EMPTY = 0;
+        /** Indicates the panel is 'pre-rendered' after renderContent */
         PanelSlider.PRERENDERED = 1;
+        /** Indicates the panel is 'pre-rendered' and awaiting content after renderContent */
         PanelSlider.FETCHING = 2;
+        /** Indicates the panel is fully rendered */
         PanelSlider.RENDERED = 3;
+        /** Indicates the panel content is out of date and needs to re-render */
         PanelSlider.DIRTY = -1;
     })(PanelSlider || (PanelSlider = {}));
     exports.default = PanelSlider;

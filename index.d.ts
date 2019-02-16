@@ -109,11 +109,17 @@ declare namespace PanelSlider {
         panelId: number;
         constructor(type: 'render' | 'preview', dom: HTMLElement, panelId: number);
     }
+    /** Return value from application `renderContent` callback */
     type RenderResult = 0 | 1 | 2 | 3 | -1;
+    /** Indicates the panel is empty after renderContent */
     const EMPTY: RenderResult;
+    /** Indicates the panel is 'pre-rendered' after renderContent */
     const PRERENDERED: RenderResult;
+    /** Indicates the panel is 'pre-rendered' and awaiting content after renderContent */
     const FETCHING: RenderResult;
+    /** Indicates the panel is fully rendered */
     const RENDERED: RenderResult;
+    /** Indicates the panel content is out of date and needs to re-render */
     const DIRTY: RenderResult;
     /** Event Listener signature */
     type EventListener = (e: Event) => void;
