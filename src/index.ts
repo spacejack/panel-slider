@@ -529,11 +529,17 @@ namespace PanelSlider {
 		}
 	}
 
+	/** Return value from application `renderContent` callback */
 	export type RenderResult = 0 | 1 | 2 | 3 | -1
+	/** Indicates the panel is empty after renderContent */
 	export const EMPTY      : RenderResult = 0
+	/** Indicates the panel is 'pre-rendered' after renderContent */
 	export const PRERENDERED: RenderResult = 1
+	/** Indicates the panel is 'pre-rendered' and awaiting content after renderContent */
 	export const FETCHING   : RenderResult = 2
+	/** Indicates the panel is fully rendered */
 	export const RENDERED   : RenderResult = 3
+	/** Indicates the panel content is out of date and needs to re-render */
 	export const DIRTY      : RenderResult = -1
 
 	/** Event Listener signature */
