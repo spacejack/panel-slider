@@ -14,7 +14,25 @@ nav {
 	position: absolute;
 	top: 1em;
 	left: 1em;
-	max-width: 20em;
+	/*max-width: 20em;*/
+}
+
+nav .group {
+	display: inline-block;
+	margin-right: 0.5em;
+}
+
+@media (max-width: 430px) {
+	.mq-lp {
+		display: none;
+	}
+}
+
+@media (max-width: 370px) {
+	.mq-md,
+	nav .group.mq-md {
+		display: none;
+	}
 }
 
 button {

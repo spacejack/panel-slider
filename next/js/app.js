@@ -1,17 +1,20 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
+// This is a placeholder module that generates example content
+// from some public APIs.
+// This is used to demonstrate panels having async content.
 Object.defineProperty(exports, "__esModule", { value: true });
 const cache = new Map();
 /**
- * Return what's available but don't initiate any fetch.
+ * Return what's available for this panel but don't initiate any fetch.
  */
-function peek(id) {
-    return cache.get(id);
+function peek(panelId) {
+    return cache.get(panelId);
 }
 exports.peek = peek;
 /**
  * Return content if ready as an array.
- * Otherwise return a promise - initiate a fetch
+ * Otherwise return a promise; initiate a fetch
  * or return an already pending promise.
  */
 function get(id) {
@@ -36,84 +39,14 @@ exports.get = get;
 },{}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const math_1 = require("../../src/math");
 const Panel_1 = require("../../src/Panel");
 const index_1 = require("../../src/index");
+const ui = require("./ui");
 const content = require("./content");
 let slider;
-/** getElementById helper */
-function $e(id) {
-    return document.getElementById(id);
-}
-/** Element to display live panel ID */
-const elId = $e('panelId');
-/** Element to display live panel position */
-const elPos = $e('panelPos');
 const NUM_PANELS = 101;
 const MIN_PANEL_WIDTH = 360;
-/** Create a page button element */
-function createPageButton(panelId) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn-pg';
-    b.textContent = String(panelId);
-    b.addEventListener('click', () => {
-        // Start fetching the destination panel content
-        content.get(panelId);
-        // Send the PanelSlider there
-        slider.setPanel(panelId).then(pid => {
-            elId.textContent = String(pid);
-        });
-    });
-    return b;
-}
-/** Build some quick nav links to jump across many panels */
-function buildNav() {
-    const nav = document.querySelector('nav');
-    for (let i = 0; i < NUM_PANELS; i += 10) {
-        nav.appendChild(createPageButton(i));
-    }
-}
-const picsumOffset = Math.floor(Math.random() * 1000);
-/** Render panel content. Returns DOM tree. */
-function renderPanelContent(pid, texts) {
-    const div = document.createElement('div');
-    const h2 = document.createElement('h2');
-    h2.textContent = 'Panel ' + pid;
-    div.appendChild(h2);
-    const img = document.createElement('img');
-    img.style.width = '300px';
-    img.style.height = '200px';
-    img.src = 'https://picsum.photos/300/200?image=' + (picsumOffset + pid);
-    const p = document.createElement('p');
-    p.appendChild(img);
-    div.appendChild(p);
-    for (const text of texts) {
-        const p = document.createElement('p');
-        p.textContent = text;
-        div.appendChild(p);
-    }
-    return div;
-}
-/** Pre-render (fast) */
-function preRenderPanelContent(pid, text) {
-    const div = document.createElement('div');
-    const h2 = document.createElement('h2');
-    h2.textContent = 'Panel ' + pid;
-    div.appendChild(h2);
-    const img = document.createElement('div');
-    img.style.width = '300px';
-    img.style.height = '200px';
-    img.style.display = 'inline-block';
-    img.style.backgroundColor = '#DDD';
-    let p = document.createElement('p');
-    p.appendChild(img);
-    div.appendChild(p);
-    p = document.createElement('p');
-    p.style.fontStyle = 'italic';
-    p.textContent = text;
-    div.appendChild(p);
-    return div;
-}
 /**
  * (Re)Create & configure a PanelSlider instance
  */
@@ -142,8 +75,7 @@ function initPanelSlider(visiblePanels) {
             // If it's ready to use, we got an array of strings
             if (Array.isArray(c)) {
                 // Content is available now - render it:
-                panel.dom.innerHTML = '';
-                panel.dom.appendChild(renderPanelContent(panel.index, c));
+                ui.renderPanelContent(panel.dom, panel.index, c);
                 // Indicate did render
                 return Panel_1.default.RENDERED;
             }
@@ -157,39 +89,65 @@ function initPanelSlider(visiblePanels) {
                     slider.renderContent(panel.index);
                 });
                 // Do a fast render while waiting
-                panel.dom.innerHTML = '';
-                panel.dom.appendChild(preRenderPanelContent(panel.index, 'loading...'));
+                ui.preRenderPanelContent(panel.dom, panel.index, 'loading...');
                 return Panel_1.default.FETCHING;
             }
             else {
                 // Content not available but this is a 'fast' render so
                 // don't bother fetching anything.
                 // We could render some 'loading' or low-res content here...
-                panel.dom.innerHTML = '';
-                panel.dom.appendChild(preRenderPanelContent(panel.index, '...'));
+                ui.preRenderPanelContent(panel.dom, panel.index, '...');
                 return Panel_1.default.PRERENDERED;
             }
         },
         on: {
             panelchange: e => {
                 // Update panel ID displayed
-                elId.textContent = String(e.panelId);
+                ui.elements.panelId.textContent = String(e.panelId);
             },
             animate: e => {
                 // Update panel position displayed
-                elPos.textContent = e.panelFraction.toFixed(2);
+                ui.elements.panelPos.textContent = e.panelFraction.toFixed(2);
             }
         }
     });
 }
+/** Compute how many panel widths fit in the container */
 function calcVisiblePanels() {
-    containerWidth = rootElement.getBoundingClientRect().width;
+    containerWidth = ui.elements.root.getBoundingClientRect().width;
     return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1);
 }
-const rootElement = document.querySelector('.panel-set');
-let containerWidth = rootElement.getBoundingClientRect().width;
+/** Handle nav page button click */
+function onNavChange(e) {
+    let panelId = slider.getPanel();
+    if (e.type === 'goto') {
+        panelId = e.id * 10;
+    }
+    else if (e.type === 'skip') {
+        const skip = Math.abs(e.id) <= 1
+            ? e.id
+            : Math.sign(e.id) * numVisiblePanels;
+        panelId = math_1.clamp(panelId + skip, 0, NUM_PANELS - 1);
+    }
+    // User clicked a nav button for this panel ID.
+    // Fetch content immediately if it's not already available...
+    content.get(panelId);
+    // Send the PanelSlider there
+    slider.setPanel(panelId).then(pid => {
+        ui.elements.panelId.textContent = String(pid);
+    });
+}
+/** Build the nav buttons and respond to nav events */
+function initNav() {
+    const navItems = [];
+    for (let i = 0; i < NUM_PANELS; i += 10) {
+        navItems.push(String(i));
+    }
+    ui.buildNav(navItems, onNavChange);
+}
+let containerWidth = ui.elements.root.getBoundingClientRect().width;
 let numVisiblePanels = calcVisiblePanels();
-buildNav();
+initNav();
 window.addEventListener('load', () => {
     numVisiblePanels = calcVisiblePanels();
     initPanelSlider(numVisiblePanels);
@@ -202,7 +160,132 @@ window.addEventListener('load', () => {
     });
 });
 
-},{"../../src/Panel":4,"../../src/index":8,"./content":1}],3:[function(require,module,exports){
+},{"../../src/Panel":5,"../../src/index":9,"../../src/math":10,"./content":1,"./ui":3}],3:[function(require,module,exports){
+"use strict";
+// Since this is a vanilla JS demo, this is our UI library
+// that does the DOM rendering work for our app content.
+// This is what you might replace with a library like Mithril, React, Vue, etc.
+Object.defineProperty(exports, "__esModule", { value: true });
+/** getElementById helper */
+function $e(id) {
+    return document.getElementById(id);
+}
+exports.$e = $e;
+/** Static page elements expected to exist in HTML */
+exports.elements = {
+    /** Element to display live panel ID */
+    panelId: $e('panelId'),
+    /** Element to display live panel position */
+    panelPos: $e('panelPos'),
+    root: document.querySelector('.panel-set')
+};
+/** Create a page button element */
+function createButton(text, onclick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn-pg';
+    b.textContent = text;
+    if (onclick) {
+        b.addEventListener('click', onclick);
+    }
+    return b;
+}
+exports.createButton = createButton;
+class NavEvent {
+    constructor(type, i) {
+        this.type = type;
+        this.id = i;
+    }
+}
+exports.NavEvent = NavEvent;
+/** Build some quick nav links to jump across many panels */
+function buildNav(items, onNav) {
+    const nav = document.querySelector('nav');
+    // Page numbered buttons
+    const lnav = document.createElement('div');
+    lnav.className = 'group';
+    items.forEach((item, i) => {
+        lnav.appendChild(createButton(item, e => {
+            onNav({ type: 'goto', id: i });
+        }));
+    });
+    // Skip buttons
+    const rnav = document.createElement('div');
+    rnav.className = 'group mq-md';
+    let btn = createButton('⏪', () => {
+        onNav({ type: 'skip', id: -2 });
+    });
+    btn.classList.add('mq-lp');
+    rnav.appendChild(btn);
+    rnav.appendChild(createButton('⯇', () => {
+        onNav({ type: 'skip', id: -1 });
+    }));
+    rnav.appendChild(createButton('⯈', () => {
+        onNav({ type: 'skip', id: 1 });
+    }));
+    btn = createButton('⏩', () => {
+        onNav({ type: 'skip', id: 2 });
+    });
+    btn.classList.add('mq-lp');
+    rnav.appendChild(btn);
+    nav.innerHTML = '';
+    nav.appendChild(rnav);
+    nav.appendChild(lnav);
+}
+exports.buildNav = buildNav;
+const picsumOffset = Math.floor(Math.random() * 1000);
+/** Render panel content. Returns DOM tree. */
+function renderPanelContent(dom, pid, texts) {
+    const div = document.createElement('div');
+    const h2 = document.createElement('h2');
+    h2.textContent = 'Panel ' + pid;
+    div.appendChild(h2);
+    const img = document.createElement('img');
+    img.style.width = '300px';
+    img.style.height = '200px';
+    img.src = 'https://picsum.photos/300/200?image=' + (picsumOffset + pid);
+    const p = document.createElement('p');
+    p.appendChild(img);
+    div.appendChild(p);
+    for (const text of texts) {
+        const p = document.createElement('p');
+        p.textContent = text;
+        div.appendChild(p);
+    }
+    // Replace-write this into the supplied element.
+    // (A virtual dom would provide useful diffing here.)
+    dom.innerHTML = '';
+    dom.appendChild(div);
+    return div;
+}
+exports.renderPanelContent = renderPanelContent;
+/** Pre-render (fast) */
+function preRenderPanelContent(dom, pid, text) {
+    const div = document.createElement('div');
+    const h2 = document.createElement('h2');
+    h2.textContent = 'Panel ' + pid;
+    div.appendChild(h2);
+    const img = document.createElement('div');
+    img.style.width = '300px';
+    img.style.height = '200px';
+    img.style.display = 'inline-block';
+    img.style.backgroundColor = '#DDD';
+    let p = document.createElement('p');
+    p.appendChild(img);
+    div.appendChild(p);
+    p = document.createElement('p');
+    p.style.fontStyle = 'italic';
+    p.textContent = text;
+    div.appendChild(p);
+    // Replace-write this into the supplied element
+    // (A virtual dom would provide useful diffing here.)
+    dom.innerHTML = '';
+    dom.appendChild(div);
+    return div;
+}
+exports.preRenderPanelContent = preRenderPanelContent;
+
+},{}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Speedo_1 = require("./Speedo");
@@ -388,7 +471,7 @@ function applyIOSHack() {
     iOSHackApplied = true;
 }
 
-},{"./Speedo":5}],4:[function(require,module,exports){
+},{"./Speedo":6}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** Creates a Panel instance */
@@ -430,7 +513,7 @@ function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
 })(Panel || (Panel = {}));
 exports.default = Panel;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("./math");
@@ -479,7 +562,7 @@ function Speedo(numSamples = DEFAULT_SAMPLES) {
 }
 exports.default = Speedo;
 
-},{"./math":9}],6:[function(require,module,exports){
+},{"./math":10}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** Generate an array sequence of numbers from start up to but not including end incrementing by step */
@@ -498,14 +581,14 @@ function range(start, end, step) {
 }
 exports.range = range;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("./math");
 /**
  * Compute "throw" from swipe
  */
-function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, slideDuration }) {
+function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, unitDuration }) {
     /** Minimum duration of animation */
     const MIN_DUR_MS = 17;
     /** Max throw velocity */
@@ -530,14 +613,15 @@ function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, slideD
     /** How many panels (incl. fractions) are we travelling across */
     const unitDist = (destPanel * panelWidth - (-x)) / panelWidth;
     const absUnitDist = Math.abs(unitDist);
+    /** Duration of the animation */
     let dur = 0;
     if (absUnitDist > 1) {
         // Compute a duration suitable for travelling multiple panels
-        dur = Math.max(MIN_DUR_MS, slideDuration * Math.pow(absUnitDist, 0.25) * 1.0);
+        dur = Math.max(MIN_DUR_MS, unitDuration * Math.pow(absUnitDist, 0.25) * 1.0);
     }
     else {
         // Compute a duration suitable for 1 or less panel travel
-        dur = Math.max(MIN_DUR_MS, slideDuration * absUnitDist); //(absUnitDist * cfg.visiblePanels!))
+        dur = Math.max(MIN_DUR_MS, unitDuration * absUnitDist); //(absUnitDist * cfg.visiblePanels))
         if (Math.sign(unitDist) === -Math.sign(xvel)) {
             // Swipe in same direction of travel - speed up animation relative to swipe speed
             const timeScale = Math.max(Math.abs(xvel / 1000), 1);
@@ -551,7 +635,7 @@ function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, slideD
 }
 exports.swipe = swipe;
 
-},{"./math":9}],8:[function(require,module,exports){
+},{"./math":10}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const array_1 = require("./array");
@@ -742,7 +826,7 @@ function PanelSlider(cfg) {
             x: curPosX, xv: xVelocity,
             maxSwipePanels: cfg.maxSwipePanels,
             panelWidth,
-            slideDuration: cfg.slideDuration,
+            unitDuration: cfg.slideDuration,
             totalPanels: cfg.totalPanels - (cfg.visiblePanels - 1)
         });
         animateTo(result.panelId, result.duration, done);
@@ -936,7 +1020,7 @@ function PanelSlider(cfg) {
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;
 
-},{"./Dragger":3,"./Panel":4,"./array":6,"./gesture":7,"./math":9,"./transform":10}],9:[function(require,module,exports){
+},{"./Dragger":4,"./Panel":5,"./array":7,"./gesture":8,"./math":10,"./transform":11}],10:[function(require,module,exports){
 "use strict";
 // Math utils
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -951,7 +1035,7 @@ function pmod(n, m) {
 }
 exports.pmod = pmod;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 // Determine style names (if prefix required)
 Object.defineProperty(exports, "__esModule", { value: true });
