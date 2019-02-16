@@ -47,6 +47,7 @@ const content = require("./content");
 let slider;
 const NUM_PANELS = 101;
 const MIN_PANEL_WIDTH = 360;
+const SLIDE_DURATION = 400;
 /**
  * (Re)Create & configure a PanelSlider instance
  */
@@ -62,7 +63,7 @@ function initPanelSlider(visiblePanels) {
         visiblePanels,
         initialPanel,
         maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
-        slideDuration: 400,
+        slideDuration: SLIDE_DURATION,
         panelClassName: 'panel',
         // Callback that gets invoked when the PanelSlider needs
         // to render this panel.
@@ -119,7 +120,8 @@ function calcVisiblePanels() {
 }
 /** Handle nav page button click */
 function onNavChange(e) {
-    let panelId = slider.getPanel();
+    const panelId0 = slider.getPanel();
+    let panelId = panelId0;
     if (e.type === 'goto') {
         panelId = e.id * 10;
     }
@@ -127,13 +129,15 @@ function onNavChange(e) {
         const skip = Math.abs(e.id) <= 1
             ? e.id
             : Math.sign(e.id) * numVisiblePanels;
-        panelId = math_1.clamp(panelId + skip, 0, NUM_PANELS - 1);
+        panelId += skip;
     }
+    panelId = math_1.clamp(panelId, 0, NUM_PANELS - numVisiblePanels);
+    const duration = SLIDE_DURATION * Math.pow(Math.max(Math.abs(panelId - panelId0), 1), 0.25);
     // User clicked a nav button for this panel ID.
     // Fetch content immediately if it's not already available...
     content.get(panelId);
     // Send the PanelSlider there
-    slider.setPanel(panelId).then(pid => {
+    slider.setPanel(panelId, duration).then(pid => {
         ui.elements.panelId.textContent = String(pid);
     });
 }
@@ -912,11 +916,11 @@ function PanelSlider(cfg) {
      * so the result index may not be what was
      * requested or the promise may not resolve.
      */
-    function setPanel(panelId) {
+    function setPanel(panelId, duration = cfg.slideDuration) {
         return panelId === curPanel
             ? Promise.resolve(panelId)
             : new Promise(r => {
-                animateTo(panelId, cfg.slideDuration, r);
+                animateTo(panelId, duration, r);
             });
     }
     /** Sets the current panel index immediately, no animation */
