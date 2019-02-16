@@ -40,7 +40,6 @@ exports.get = get;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("../../src/math");
-const Panel_1 = require("../../src/Panel");
 const index_1 = require("../../src/index");
 const ui = require("./ui");
 const content = require("./content");
@@ -70,39 +69,39 @@ function initPanelSlider(visiblePanels) {
         // panel - the Panel we're rendering
         // fast  - a boolean indicating if this is a 'fast' (animating)
         //         frame, in which case we should skip async/heavy tasks.
-        renderContent: (panel, fast) => {
-            if (panel.index === 0) {
-                ui.renderIntro(panel.dom);
-                return Panel_1.default.RENDERED;
+        renderContent: (e) => {
+            if (e.panelId === 0) {
+                ui.renderIntro(e.dom);
+                return index_1.default.RENDERED;
             }
             // Try to get 'ready' content for this panel
-            let c = content.peek(panel.index);
+            let c = content.peek(e.panelId);
             // If it's ready to use, we got an array of strings
             if (Array.isArray(c)) {
                 // Content is available now - render it:
-                ui.renderPanelContent(panel.dom, panel.index, c);
+                ui.renderPanelContent(e.dom, e.panelId, c);
                 // Indicate did render
-                return Panel_1.default.RENDERED;
+                return index_1.default.RENDERED;
             }
-            else if (!fast) {
+            else if (e.type === 'render') {
                 // Content not available yet - fetch
-                c = c || Promise.resolve(content.get(panel.index));
+                c = c || Promise.resolve(content.get(e.panelId));
                 c.then(() => {
                     // Request PanelSlider to re-render this panel when the content promise
                     // resolves. It's possible this panel is no longer bound to this ID by
                     // then so the render request may be ignored.
-                    slider.renderContent(panel.index);
+                    slider.renderContent(e.panelId);
                 });
                 // Do a fast render while waiting
-                ui.preRenderPanelContent(panel.dom, panel.index, 'loading...');
-                return Panel_1.default.FETCHING;
+                ui.preRenderPanelContent(e.dom, e.panelId, 'loading...');
+                return index_1.default.FETCHING;
             }
             else {
                 // Content not available but this is a 'fast' render so
                 // don't bother fetching anything.
                 // We could render some 'loading' or low-res content here...
-                ui.preRenderPanelContent(panel.dom, panel.index, '...');
-                return Panel_1.default.PRERENDERED;
+                ui.preRenderPanelContent(e.dom, e.panelId, '...');
+                return index_1.default.PRERENDERED;
             }
         },
         on: {
@@ -169,7 +168,7 @@ window.addEventListener('load', () => {
     });
 });
 
-},{"../../src/Panel":5,"../../src/index":9,"../../src/math":10,"./content":1,"./ui":3}],3:[function(require,module,exports){
+},{"../../src/index":9,"../../src/math":10,"./content":1,"./ui":3}],3:[function(require,module,exports){
 "use strict";
 // Since this is a vanilla JS demo, this is our UI library
 // that does the DOM rendering work for our app content.
@@ -693,11 +692,10 @@ function PanelSlider(cfg) {
             addListener(key, cfg.on[key]);
         }
     }
-    const panelWidthPct = 100 / cfg.visiblePanels;
-    const panels = array_1.range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(pid => Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, cfg.panelClassName));
+    const panels = array_1.range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(pid => Panel_1.default(pid, 100 / cfg.visiblePanels, Panel_1.default.EMPTY, cfg.panelClassName));
     cfg.dom.innerHTML = '';
     for (const p of panels) {
-        p.state = cfg.renderContent(p);
+        p.state = cfg.renderContent(new PanelSlider.RenderEvent('render', p.dom, p.index));
         cfg.dom.appendChild(p.dom);
     }
     // Will be computed on resize
@@ -768,7 +766,7 @@ function PanelSlider(cfg) {
             const panel = panels.find(p => p.index === i);
             if (panel) {
                 if (panel.state < Panel_1.default.PRERENDERED || (!fast && panel.state < Panel_1.default.FETCHING)) {
-                    panel.state = cfg.renderContent(panel, fast);
+                    panel.state = cfg.renderContent(new PanelSlider.RenderEvent(fast ? 'preview' : 'render', panel.dom, panel.index));
                 }
                 transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
                 keepPanels[i] = panel;
@@ -789,7 +787,7 @@ function PanelSlider(cfg) {
                 console.log(`updating panel: ${i}`);
             }
             panel.index = i;
-            panel.state = cfg.renderContent(panel, fast);
+            panel.state = cfg.renderContent(new PanelSlider.RenderEvent('preview', panel.dom, panel.index));
             transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
             keepPanels[i] = panel;
         }
@@ -800,11 +798,11 @@ function PanelSlider(cfg) {
             const panel = panels.find(p => p.index === pid);
             if (!panel)
                 return false;
-            panel.state = cfg.renderContent(panel);
+            panel.state = cfg.renderContent(new PanelSlider.RenderEvent('render', panel.dom, panel.index));
             return true;
         }
         for (const panel of panels) {
-            panel.state = cfg.renderContent(panel);
+            panel.state = cfg.renderContent(new PanelSlider.RenderEvent('render', panel.dom, panel.index));
         }
         return true;
     }
@@ -1054,6 +1052,20 @@ function PanelSlider(cfg) {
         }
     }
     PanelSlider.AnimateEvent = AnimateEvent;
+    /** Received by the application's `renderContent` callback */
+    class RenderEvent {
+        constructor(type, dom, panelId) {
+            this.type = type;
+            this.dom = dom;
+            this.panelId = panelId;
+        }
+    }
+    PanelSlider.RenderEvent = RenderEvent;
+    PanelSlider.EMPTY = 0;
+    PanelSlider.PRERENDERED = 1;
+    PanelSlider.FETCHING = 2;
+    PanelSlider.RENDERED = 3;
+    PanelSlider.DIRTY = -1;
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;
 
