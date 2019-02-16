@@ -33,6 +33,10 @@ function initPanelSlider (visiblePanels: number) {
 		// fast  - a boolean indicating if this is a 'fast' (animating)
 		//         frame, in which case we should skip async/heavy tasks.
 		renderContent: (panel, fast) => {
+			if (panel.index === 0) {
+				ui.renderIntro(panel.dom)
+				return Panel.RENDERED
+			}
 			// Try to get 'ready' content for this panel
 			let c = content.peek(panel.index)
 			// If it's ready to use, we got an array of strings
@@ -111,6 +115,7 @@ function initNav() {
 	const navItems: string[] = []
 	for (let i = 0; i < NUM_PANELS; i += 10) {
 		navItems.push(String(i))
+		//navItems.push(i === 0 ? '⌂' : String(i))
 	}
 	ui.buildNav(navItems, onNavChange)
 }

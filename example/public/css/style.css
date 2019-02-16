@@ -70,6 +70,15 @@ button.btn-pg {
 	overflow-x: hidden;
 }
 
+.lg-lt {
+	font-size: 8em;
+	color: #DDD;
+}
+
+.center {
+	text-align: center;
+}
+
 .panel-set {
 	position: absolute;
 	left: 0;

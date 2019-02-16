@@ -58,10 +58,10 @@ export function buildNav (items: string[], onNav: (e: NavEvent) => void) {
 	})
 	btn.classList.add('mq-lp')
 	rnav.appendChild(btn)
-	rnav.appendChild(createButton('⯇', () => {
+	rnav.appendChild(createButton('◀️', () => {
 		onNav({type: 'skip', id: -1})
 	}))
-	rnav.appendChild(createButton('⯈', () => {
+	rnav.appendChild(createButton('▶️', () => {
 		onNav({type: 'skip', id: 1})
 	}))
 	btn = createButton('⏩', () => {
@@ -122,6 +122,19 @@ export function preRenderPanelContent (dom: HTMLElement, pid: number, text: stri
 	div.appendChild(p)
 	// Replace-write this into the supplied element
 	// (A virtual dom would provide useful diffing here.)
+	dom.innerHTML = ''
+	dom.appendChild(div)
+	return div
+}
+
+export function renderIntro (dom: HTMLElement) {
+	const div = document.createElement('div')
+	div.className = 'center'
+	div.innerHTML = `<h2>Panel Slider Demo</h2>
+<div class="lg-lt">◀️ ▶️</div>
+<p>Swipe left or right to navigate.</p>
+<p>Or use the buttons above.</p>
+<p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`
 	dom.innerHTML = ''
 	dom.appendChild(div)
 	return div
