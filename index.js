@@ -453,13 +453,12 @@ var __assign = (this && this.__assign) || function () {
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "./array", "./math", "./transform", "./Dragger", "./Panel", "./gesture"], factory);
+        define(["require", "exports", "./array", "./transform", "./Dragger", "./Panel", "./gesture"], factory);
     }
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var array_1 = require("./array");
-    var math_1 = require("./math");
     var transform_1 = require("./transform");
     var Dragger_1 = require("./Dragger");
     var Panel_1 = require("./Panel");
@@ -512,6 +511,8 @@ var __assign = (this && this.__assign) || function () {
         var curPosX = 0;
         /** Indicates panel animation loop is running */
         var isAnimating = false;
+        /** Overscroll */
+        var overscroll = 1;
         /** Update our full width and panel width on resize */
         function resize() {
             var rc = cfg.dom.getBoundingClientRect();
@@ -520,6 +521,19 @@ var __assign = (this && this.__assign) || function () {
             fullWidth = panelWidth * cfg.totalPanels;
             curPosX = -curPanel * panelWidth;
             render();
+        }
+        function applyOverscroll(x) {
+            if (x > 0) {
+                var xp = Math.min(1, x / (overscroll * panelWidth));
+                return xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth;
+            }
+            var xMax = fullWidth - panelWidth * cfg.visiblePanels;
+            if (x < -xMax) {
+                var dx = Math.abs(x - (-xMax));
+                var xp = Math.min(1, dx / (overscroll * panelWidth));
+                return -xMax - xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth;
+            }
+            return x;
         }
         function render(fast) {
             // note that: curPosX = -curPanel * panelWidth
@@ -616,7 +630,8 @@ var __assign = (this && this.__assign) || function () {
                 },
                 dragmove: function (e) {
                     var ox = -curPanel * panelWidth;
-                    curPosX = Math.round(math_1.clamp(ox + e.x, -(fullWidth - panelWidth), 0));
+                    //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+                    curPosX = applyOverscroll(ox + e.x);
                     render();
                     emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
                     emit(new PanelSlider.DragEvent('drag', e.x, e.xv));
@@ -629,7 +644,8 @@ var __assign = (this && this.__assign) || function () {
                 },
                 dragend: function (e) {
                     var ox = -curPanel * panelWidth;
-                    curPosX = Math.round(math_1.clamp(ox + e.x, -(fullWidth - panelWidth), 0));
+                    //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+                    curPosX = applyOverscroll(Math.round(ox + e.x));
                     render();
                     swipeAnim(e.xv, function (pid) {
                         emit(new PanelSlider.ChangeEvent('panelchange', pid));
@@ -864,7 +880,7 @@ var __assign = (this && this.__assign) || function () {
     exports.default = PanelSlider;
 });
 
-},{"./Dragger":1,"./Panel":2,"./array":4,"./gesture":5,"./math":7,"./transform":8}],7:[function(require,module,exports){
+},{"./Dragger":1,"./Panel":2,"./array":4,"./gesture":5,"./transform":8}],7:[function(require,module,exports){
 // Math utils
 (function (factory) {
     if (typeof module === "object" && typeof module.exports === "object") {

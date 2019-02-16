@@ -116,6 +116,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	let curPosX = 0
 	/** Indicates panel animation loop is running */
 	let isAnimating = false
+	/** Overscroll */
+	const overscroll = 1
 
 	/** Update our full width and panel width on resize */
 	function resize() {
@@ -127,6 +129,21 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		render()
 	}
 
+	/** Applies averscroll dampening if dragged past edges */
+	function applyOverscroll (x: number) {
+		if (x > 0) {
+			const xp = Math.min(1, x / (overscroll * panelWidth))
+			return xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth
+		}
+		const xMax = fullWidth - panelWidth * cfg.visiblePanels!
+		if (x < -xMax) {
+			const dx = Math.abs(x - (-xMax))
+			const xp = Math.min(1, dx / (overscroll * panelWidth))
+			return -xMax - xp * (1 - Math.sqrt(xp / 2)) * overscroll * panelWidth
+		}
+		return x
+	}
+
 	function render (fast?: boolean) {
 		// note that: curPosX = -curPanel * panelWidth
 		const x = Math.abs(curPosX)
@@ -136,8 +153,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			Math.ceil(cfg.totalPanels * (x + panelWidth * cfg.visiblePanels!) / fullWidth),
 			cfg.totalPanels - 1
 		)
-		//if (!fast) {
-		// Render extrap panels outward from viewport edges.
+		// Render extra panels outward from viewport edges.
 		// Start on the left side then alternate.
 		for (let i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
 			if (i % 2 === 0) {
@@ -152,7 +168,6 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 				}
 			}
 		}
-		//}
 		/** Cached panels that are still valid */
 		const keepPanels: {[id: number]: Panel} = Object.create(null)
 		/** ids of panels that were not cached */
@@ -220,7 +235,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			},
 			dragmove(e) {
 				const ox = -curPanel * panelWidth
-				curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+				//curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+				curPosX = applyOverscroll(ox + e.x)
 				render()
 				emit(new PanelSlider.AnimateEvent(
 					'animate', -curPosX / panelWidth
@@ -235,7 +251,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			},
 			dragend (e) {
 				const ox = -curPanel * panelWidth
-				curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+				//curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
+				curPosX = applyOverscroll(Math.round(ox + e.x))
 				render()
 				swipeAnim(e.xv, pid => {
 					emit(new PanelSlider.ChangeEvent('panelchange', pid))

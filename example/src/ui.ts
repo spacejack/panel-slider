@@ -133,7 +133,7 @@ export function renderIntro (dom: HTMLElement) {
 	div.innerHTML = `<h2>Panel Slider Demo</h2>
 <div class="lg-lt">◀️ ▶️</div>
 <p>Swipe left or right to navigate.</p>
-<p>Or use the buttons above.</p>
+<p>Panel content is loaded asynchronously.</p>
 <p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`
 	dom.innerHTML = ''
 	dom.appendChild(div)
