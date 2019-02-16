@@ -522,6 +522,7 @@ var __assign = (this && this.__assign) || function () {
             curPosX = -curPanel * panelWidth;
             render();
         }
+        /** Applies averscroll dampening if dragged past edges */
         function applyOverscroll(x) {
             if (x > 0) {
                 var xp = Math.min(1, x / (overscroll * panelWidth));
@@ -541,8 +542,7 @@ var __assign = (this && this.__assign) || function () {
             /** Inclusive start/end panel indexes */
             var iStart = Math.floor(cfg.totalPanels * x / fullWidth);
             var iEnd = Math.min(Math.ceil(cfg.totalPanels * (x + panelWidth * cfg.visiblePanels) / fullWidth), cfg.totalPanels - 1);
-            //if (!fast) {
-            // Render extrap panels outward from viewport edges.
+            // Render extra panels outward from viewport edges.
             // Start on the left side then alternate.
             for (var i = 0, n = panels.length - (iEnd - iStart + 1); n > 0; ++i) {
                 if (i % 2 === 0) {
@@ -558,7 +558,6 @@ var __assign = (this && this.__assign) || function () {
                     }
                 }
             }
-            //}
             /** Cached panels that are still valid */
             var keepPanels = Object.create(null);
             /** ids of panels that were not cached */
