@@ -1,5 +1,4 @@
 import {clamp} from '../../src/math'
-import Panel from '../../src/Panel'
 import PanelSlider from '../../src/index'
 import * as ui from './ui'
 import * as content from './content'
@@ -32,37 +31,37 @@ function initPanelSlider (visiblePanels: number) {
 		// panel - the Panel we're rendering
 		// fast  - a boolean indicating if this is a 'fast' (animating)
 		//         frame, in which case we should skip async/heavy tasks.
-		renderContent: (panel, fast) => {
-			if (panel.index === 0) {
-				ui.renderIntro(panel.dom)
-				return Panel.RENDERED
+		renderContent: (e) => {
+			if (e.panelId === 0) {
+				ui.renderIntro(e.dom)
+				return PanelSlider.RENDERED
 			}
 			// Try to get 'ready' content for this panel
-			let c = content.peek(panel.index)
+			let c = content.peek(e.panelId)
 			// If it's ready to use, we got an array of strings
 			if (Array.isArray(c)) {
 				// Content is available now - render it:
-				ui.renderPanelContent(panel.dom, panel.index, c)
+				ui.renderPanelContent(e.dom, e.panelId, c)
 				// Indicate did render
-				return Panel.RENDERED
-			} else if (!fast) {
+				return PanelSlider.RENDERED
+			} else if (e.type === 'render') {
 				// Content not available yet - fetch
-				c = c || Promise.resolve(content.get(panel.index))
+				c = c || Promise.resolve(content.get(e.panelId))
 				c.then(() => {
 					// Request PanelSlider to re-render this panel when the content promise
 					// resolves. It's possible this panel is no longer bound to this ID by
 					// then so the render request may be ignored.
-					slider.renderContent(panel.index)
+					slider.renderContent(e.panelId)
 				})
 				// Do a fast render while waiting
-				ui.preRenderPanelContent(panel.dom, panel.index, 'loading...')
-				return Panel.FETCHING
+				ui.preRenderPanelContent(e.dom, e.panelId, 'loading...')
+				return PanelSlider.FETCHING
 			} else {
 				// Content not available but this is a 'fast' render so
 				// don't bother fetching anything.
 				// We could render some 'loading' or low-res content here...
-				ui.preRenderPanelContent(panel.dom, panel.index, '...')
-				return Panel.PRERENDERED
+				ui.preRenderPanelContent(e.dom, e.panelId, '...')
+				return PanelSlider.PRERENDERED
 			}
 		},
 		on: {

@@ -1,5 +1,4 @@
 import {range} from './array'
-import {clamp} from './math'
 import {setPos3d} from './transform'
 import Dragger from './Dragger'
 import Panel from './Panel'
@@ -95,13 +94,14 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		}
 	}
 
-	const panelWidthPct = 100 / cfg.visiblePanels
 	const panels = range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(pid => Panel(
-		pid, panelWidthPct, Panel.EMPTY, cfg.panelClassName
+		pid, 100 / cfg.visiblePanels!, Panel.EMPTY, cfg.panelClassName
 	))
 	cfg.dom.innerHTML = ''
 	for (const p of panels) {
-		p.state = cfg.renderContent(p)
+		p.state = cfg.renderContent(
+			new PanelSlider.RenderEvent('render', p.dom, p.index)
+		)
 		cfg.dom.appendChild(p.dom)
 	}
 
@@ -178,7 +178,11 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			const panel = panels.find(p => p.index === i)
 			if (panel) {
 				if (panel.state < Panel.PRERENDERED || (!fast && panel.state < Panel.FETCHING)) {
-					panel.state = cfg.renderContent(panel, fast)
+					panel.state = cfg.renderContent(
+						new PanelSlider.RenderEvent(
+							fast ? 'preview' : 'render', panel.dom, panel.index
+						)
+					)
 				}
 				setPos3d(panel.dom, curPosX + i * panelWidth)
 				keepPanels[i] = panel
@@ -198,7 +202,9 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 				console.log(`updating panel: ${i}`)
 			}
 			panel.index = i
-			panel.state = cfg.renderContent(panel, fast)
+			panel.state = cfg.renderContent(
+				new PanelSlider.RenderEvent('preview', panel.dom, panel.index)
+			)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels[i] = panel
 		}
@@ -209,11 +215,15 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		if (pid != null) {
 			const panel = panels.find(p => p.index === pid)
 			if (!panel) return false
-			panel.state = cfg.renderContent(panel)
+			panel.state = cfg.renderContent(
+				new PanelSlider.RenderEvent('render', panel.dom, panel.index)
+			)
 			return true
 		}
 		for (const panel of panels) {
-			panel.state = cfg.renderContent(panel)
+			panel.state = cfg.renderContent(
+				new PanelSlider.RenderEvent('render', panel.dom, panel.index)
+			)
 		}
 		return true
 	}
@@ -507,6 +517,25 @@ namespace PanelSlider {
 		}
 	}
 
+	/** Received by the application's `renderContent` callback */
+	export class RenderEvent {
+		type: 'render' | 'preview'
+		dom: HTMLElement
+		panelId: number
+		constructor (type: 'render' | 'preview', dom: HTMLElement, panelId: number) {
+			this.type = type
+			this.dom = dom
+			this.panelId = panelId
+		}
+	}
+
+	export type RenderResult = 0 | 1 | 2 | 3 | -1
+	export const EMPTY      : RenderResult = 0
+	export const PRERENDERED: RenderResult = 1
+	export const FETCHING   : RenderResult = 2
+	export const RENDERED   : RenderResult = 3
+	export const DIRTY      : RenderResult = -1
+
 	/** Event Listener signature */
 	export type EventListener = (e: Event) => void
 
@@ -561,7 +590,7 @@ namespace PanelSlider {
 		/** Initial event listeners */
 		on?: EventListeners
 		/** Application function to render a panel */
-		renderContent(panel: Panel, fast?: boolean): Panel.State
+		renderContent(event: RenderEvent): PanelSlider.RenderResult
 		/**
 		 * Optional custom animation interpolation function
 		 * @param x0 Start coordinate

@@ -492,12 +492,11 @@ var __assign = (this && this.__assign) || function () {
                 addListener(key, cfg.on[key]);
             }
         }
-        var panelWidthPct = 100 / cfg.visiblePanels;
-        var panels = array_1.range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, panelWidthPct, Panel_1.default.EMPTY, cfg.panelClassName); });
+        var panels = array_1.range(cfg.initialPanel, cfg.initialPanel + cfg.visiblePanels * 3).map(function (pid) { return Panel_1.default(pid, 100 / cfg.visiblePanels, Panel_1.default.EMPTY, cfg.panelClassName); });
         cfg.dom.innerHTML = '';
         for (var _b = 0, panels_1 = panels; _b < panels_1.length; _b++) {
             var p = panels_1[_b];
-            p.state = cfg.renderContent(p);
+            p.state = cfg.renderContent(new PanelSlider.RenderEvent('render', p.dom, p.index));
             cfg.dom.appendChild(p.dom);
         }
         // Will be computed on resize
@@ -567,7 +566,7 @@ var __assign = (this && this.__assign) || function () {
                 var panel = panels.find(function (p) { return p.index === i; });
                 if (panel) {
                     if (panel.state < Panel_1.default.PRERENDERED || (!fast && panel.state < Panel_1.default.FETCHING)) {
-                        panel.state = cfg.renderContent(panel, fast);
+                        panel.state = cfg.renderContent(new PanelSlider.RenderEvent(fast ? 'preview' : 'render', panel.dom, panel.index));
                     }
                     transform_1.setPos3d(panel.dom, curPosX + i * panelWidth);
                     keepPanels[i] = panel;
@@ -593,7 +592,7 @@ var __assign = (this && this.__assign) || function () {
                     console.log("updating panel: " + i);
                 }
                 panel.index = i;
-                panel.state = cfg.renderContent(panel, fast);
+                panel.state = cfg.renderContent(new PanelSlider.RenderEvent('preview', panel.dom, panel.index));
                 transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
                 keepPanels[i] = panel;
             }
@@ -604,12 +603,12 @@ var __assign = (this && this.__assign) || function () {
                 var panel = panels.find(function (p) { return p.index === pid; });
                 if (!panel)
                     return false;
-                panel.state = cfg.renderContent(panel);
+                panel.state = cfg.renderContent(new PanelSlider.RenderEvent('render', panel.dom, panel.index));
                 return true;
             }
             for (var _i = 0, panels_2 = panels; _i < panels_2.length; _i++) {
                 var panel = panels_2[_i];
-                panel.state = cfg.renderContent(panel);
+                panel.state = cfg.renderContent(new PanelSlider.RenderEvent('render', panel.dom, panel.index));
             }
             return true;
         }
@@ -875,6 +874,21 @@ var __assign = (this && this.__assign) || function () {
             return AnimateEvent;
         }(Event));
         PanelSlider.AnimateEvent = AnimateEvent;
+        /** Received by the application's `renderContent` callback */
+        var RenderEvent = /** @class */ (function () {
+            function RenderEvent(type, dom, panelId) {
+                this.type = type;
+                this.dom = dom;
+                this.panelId = panelId;
+            }
+            return RenderEvent;
+        }());
+        PanelSlider.RenderEvent = RenderEvent;
+        PanelSlider.EMPTY = 0;
+        PanelSlider.PRERENDERED = 1;
+        PanelSlider.FETCHING = 2;
+        PanelSlider.RENDERED = 3;
+        PanelSlider.DIRTY = -1;
     })(PanelSlider || (PanelSlider = {}));
     exports.default = PanelSlider;
 });

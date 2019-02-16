@@ -1,4 +1,3 @@
-import Panel from './Panel';
 /**
  * Allows a user to drag a set of panels horizontally across a viewport.
  */
@@ -103,6 +102,19 @@ declare namespace PanelSlider {
         panelFraction: number;
         constructor(type: 'animate', panelFraction: number);
     }
+    /** Received by the application's `renderContent` callback */
+    class RenderEvent {
+        type: 'render' | 'preview';
+        dom: HTMLElement;
+        panelId: number;
+        constructor(type: 'render' | 'preview', dom: HTMLElement, panelId: number);
+    }
+    type RenderResult = 0 | 1 | 2 | 3 | -1;
+    const EMPTY: RenderResult;
+    const PRERENDERED: RenderResult;
+    const FETCHING: RenderResult;
+    const RENDERED: RenderResult;
+    const DIRTY: RenderResult;
     /** Event Listener signature */
     type EventListener = (e: Event) => void;
     interface EventListeners {
@@ -153,7 +165,7 @@ declare namespace PanelSlider {
         /** Initial event listeners */
         on?: EventListeners;
         /** Application function to render a panel */
-        renderContent(panel: Panel, fast?: boolean): Panel.State;
+        renderContent(event: RenderEvent): PanelSlider.RenderResult;
         /**
          * Optional custom animation interpolation function
          * @param x0 Start coordinate
