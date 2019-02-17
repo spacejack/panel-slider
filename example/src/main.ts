@@ -36,6 +36,10 @@ function initPanelSlider (visiblePanels: number) {
 				ui.renderIntro(e.dom)
 				return PanelSlider.RENDERED
 			}
+			if (e.panelId === NUM_PANELS - 1) {
+				ui.renderOutro(e.dom)
+				return PanelSlider.RENDERED
+			}
 			// Try to get 'ready' content for this panel
 			let c = content.peek(e.panelId)
 			// If it's ready to use, we got an array of strings

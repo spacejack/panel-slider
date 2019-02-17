@@ -81,7 +81,7 @@ const picsumOffset = Math.floor(Math.random() * 1000)
 export function renderPanelContent (dom: HTMLElement, pid: number, texts: string[]) {
 	const div = document.createElement('div')
 	const h2 = document.createElement('h2')
-	h2.textContent = 'Panel ' + pid
+	h2.textContent = `${pid}. ${texts[1].substr(0, 10 + pid % 10).trim()}`
 	div.appendChild(h2)
 	const img = document.createElement('img')
 	img.style.width = '300px'
@@ -106,7 +106,7 @@ export function renderPanelContent (dom: HTMLElement, pid: number, texts: string
 export function preRenderPanelContent (dom: HTMLElement, pid: number, text: string) {
 	const div = document.createElement('div')
 	const h2 = document.createElement('h2')
-	h2.textContent = 'Panel ' + pid
+	h2.textContent = `${pid}. ...`
 	div.appendChild(h2)
 	const img = document.createElement('div')
 	img.style.width = '300px'
@@ -129,12 +129,26 @@ export function preRenderPanelContent (dom: HTMLElement, pid: number, text: stri
 
 export function renderIntro (dom: HTMLElement) {
 	const div = document.createElement('div')
-	div.className = 'center'
-	div.innerHTML = `<h2>Panel Slider Demo</h2>
-<div class="lg-lt">◀️ ▶️</div>
-<p>Swipe left or right to navigate.</p>
-<p>Panel content is loaded asynchronously.</p>
-<p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`
+	div.className = 'intro'
+	div.innerHTML = `<h2 class="center">Panel-Slider</h2>
+<div class="center lg-lt">▶️</div>
+<p class="center">Swipe left or right to navigate.</p>
+<p>Panel content is loaded asynchronously.
+On a desktop you can resize the window width to change the number of panels.
+Mobile devices may show more panels in landscape orientation.</p>
+<p>Docs and source: <a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`
+	dom.innerHTML = ''
+	dom.appendChild(div)
+	return div
+}
+
+export function renderOutro (dom: HTMLElement) {
+	const div = document.createElement('div')
+	div.className = 'intro'
+	div.innerHTML = `<h2 class="center">Panel-Slider</h2>
+<div class="center lg-lt">◀️</div>
+<p class="center">Swipe left or right to navigate.</p>
+<p class="center">© 2019 by Mike Linkovich | <a href="https://github.com/spacejack">Github</a></p>`
 	dom.innerHTML = ''
 	dom.appendChild(div)
 	return div
