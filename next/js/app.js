@@ -74,6 +74,10 @@ function initPanelSlider(visiblePanels) {
                 ui.renderIntro(e.dom);
                 return index_1.default.RENDERED;
             }
+            if (e.panelId === NUM_PANELS - 1) {
+                ui.renderOutro(e.dom);
+                return index_1.default.RENDERED;
+            }
             // Try to get 'ready' content for this panel
             let c = content.peek(e.panelId);
             // If it's ready to use, we got an array of strings
@@ -246,7 +250,7 @@ const picsumOffset = Math.floor(Math.random() * 1000);
 function renderPanelContent(dom, pid, texts) {
     const div = document.createElement('div');
     const h2 = document.createElement('h2');
-    h2.textContent = 'Panel ' + pid;
+    h2.textContent = `${pid}. ${texts[1].substr(0, 10 + pid % 10).trim()}`;
     div.appendChild(h2);
     const img = document.createElement('img');
     img.style.width = '300px';
@@ -271,7 +275,7 @@ exports.renderPanelContent = renderPanelContent;
 function preRenderPanelContent(dom, pid, text) {
     const div = document.createElement('div');
     const h2 = document.createElement('h2');
-    h2.textContent = 'Panel ' + pid;
+    h2.textContent = `${pid}. ...`;
     div.appendChild(h2);
     const img = document.createElement('div');
     img.style.width = '300px';
@@ -294,17 +298,31 @@ function preRenderPanelContent(dom, pid, text) {
 exports.preRenderPanelContent = preRenderPanelContent;
 function renderIntro(dom) {
     const div = document.createElement('div');
-    div.className = 'center';
-    div.innerHTML = `<h2>Panel Slider Demo</h2>
-<div class="lg-lt">◀️ ▶️</div>
-<p>Swipe left or right to navigate.</p>
-<p>Panel content is loaded asynchronously.</p>
-<p><a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`;
+    div.className = 'intro';
+    div.innerHTML = `<h2 class="center">Panel-Slider</h2>
+<div class="center lg-lt">▶️</div>
+<p class="center">Swipe left or right to navigate.</p>
+<p>Panel content is loaded asynchronously.
+On a desktop you can resize the window width to change the number of panels.
+Mobile devices may show more panels in landscape orientation.</p>
+<p>Docs and source: <a href="http://github.com/spacejack/panel-slider">Github Repo</a></p>`;
     dom.innerHTML = '';
     dom.appendChild(div);
     return div;
 }
 exports.renderIntro = renderIntro;
+function renderOutro(dom) {
+    const div = document.createElement('div');
+    div.className = 'intro';
+    div.innerHTML = `<h2 class="center">Panel-Slider</h2>
+<div class="center lg-lt">◀️</div>
+<p class="center">Swipe left or right to navigate.</p>
+<p class="center">© 2019 by Mike Linkovich | <a href="https://github.com/spacejack">Github</a></p>`;
+    dom.innerHTML = '';
+    dom.appendChild(div);
+    return div;
+}
+exports.renderOutro = renderOutro;
 
 },{}],4:[function(require,module,exports){
 "use strict";
@@ -1061,10 +1079,15 @@ function PanelSlider(cfg) {
         }
     }
     PanelSlider.RenderEvent = RenderEvent;
+    /** Indicates the panel is empty after renderContent */
     PanelSlider.EMPTY = 0;
+    /** Indicates the panel is 'pre-rendered' after renderContent */
     PanelSlider.PRERENDERED = 1;
+    /** Indicates the panel is 'pre-rendered' and awaiting content after renderContent */
     PanelSlider.FETCHING = 2;
+    /** Indicates the panel is fully rendered */
     PanelSlider.RENDERED = 3;
+    /** Indicates the panel content is out of date and needs to re-render */
     PanelSlider.DIRTY = -1;
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;

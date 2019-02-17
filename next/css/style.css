@@ -79,6 +79,11 @@ button.btn-pg {
 	text-align: center;
 }
 
+.intro {
+	padding: 0 2em;
+	box-sizing: border-box;
+}
+
 .panel-set {
 	position: absolute;
 	left: 0;
