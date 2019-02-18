@@ -1,30 +1,21 @@
-# Panel Slider
+# Panel-Slider
 
 ### [Live demo](https://spacejack.github.io/panel-slider/)
+
+Panel-Slider is an "infinite" horizontally scrolling widget that smoothly transitions between equal-sized panels. It can use swipe gestures on touch devices and respond to specific manual navigation inputs.
+
+Panel-Slider uses fast CSS transforms for animation and manages a pool of dom elements for rendering. DOM resource usage scales linearly with the number of panels visible on screen at one time. The total number of panels can be arbitrarily large.
+
+This is a fairly low-level tool to provide interaction and animation. Efficient resource fetching, caching, and content rendering are left up to your application.
 
 ## Install:
 
 	npm install panel-slider
 
-A complete example is included in the `example` directory.
+A complete, working demo app is included in the `example` directory.
 
 ## Usage:
 
-Your application should provide an empty DOM element for the PanelSlider to build itself in. You can control the size and positioning with CSS. PanelSlider adapts to the size of the element and watches for window resizes to keep panels updated to fit properly.
-
-This container element must also have a css `position` style (`relative`, `absolute`, etc.) so that panels can be positioned absolutely within it.
-
-A number of panel elements will be added to the container element which will be used to display and cache rendered panels. You can specify a CSS class with the `panelClassName` option, but note that the following inline styles will be applied to panel elements:
-
-```css
-{
-	position: absolute;
-	top: 0;
-	left: 0;
-	height: 100%;
-	width: 100%;
-}
-```
 ### Simple Example:
 
 ```typescript
@@ -38,7 +29,6 @@ const slider = PanelSlider({
 	slideDuration: 300, // Normal duration to animate 1 panel across
 	panelClassName: 'panel', // Optional class to use for panel elements
 	// Render callback receives a RenderEvent object:
-	// {type: 'render' | 'preview'; dom: HTMLElement; panelId: number}
 	renderContent: e => {
 		e.dom.textContent = 'Panel ' + e.panelId
 		return PanelSlider.RENDERED
@@ -50,6 +40,52 @@ const slider = PanelSlider({
 	}
 })
 ```
+
+Your application must provide an empty DOM element for the PanelSlider to build itself in. You can control the size and positioning of that container element with CSS. PanelSlider adapts to the size of the container and watches for window resizes to keep panels updated to fit properly.
+
+This container element must also have a css `position` style (`relative`, `absolute`, etc.) so that panels can be positioned absolutely within it.
+
+A number of panel elements will be added to the container which will be used to display and cache rendered panels. You can specify a CSS class with the `panelClassName` option, but note that the following inline styles will be applied to panel elements regardless:
+
+```css
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	/* computed when rendered */
+	width: W;
+	transform: translate3d(X,0,0);
+}
+```
+You must also provide a `renderContent` callback that accepts an object with a DOM element and panel index. For example:
+
+```typescript
+interface RenderEvent {
+	type: 'render' | 'preview'
+	dom: HTMLElement
+	panelId: number
+}
+
+function renderContent (e: RenderEvent) {
+	e.dom.appendChild(myRender(e.panelId))
+	return PanelSlider.RENDERED
+}
+```
+Where the `myRender` function knows how to build the content dom tree for that panel index. Alternately, with React:
+
+```tsx
+ReactDOM.render(<PanelContent id={e.panelId}/>, e.dom)
+```
+
+or Mithril:
+
+```typescript
+m.render(e.dom, m(PanelContent, {id: e.panelId}))
+```
+Note that the `RenderEvent` object received by your callback also has a `type` property that hints whether a full render ("render") or a fast one ("preview") is requested. This allows your app to decide whether or not to initiate network requests for content or to perform heavy layout work. You can return the value `PanelSlider.RENDERED` to indicate the panel is finished or `PanelSlider.PRERENDERED` meaning it is only partially rendered.
+
+The application render cannot be asynchronous. If you need to perform an async operation before rendering, you can request another render for this panel index when the content arrives, using the `PanelSlider` instance `render` method. In this case you can return the value `PanelSlider.FETCHING`.
 
 ## All Options:
 
