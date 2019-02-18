@@ -64,6 +64,7 @@ function initPanelSlider(visiblePanels) {
         maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
         slideDuration: SLIDE_DURATION,
         panelClassName: 'panel',
+        dragThreshold: 2,
         // Callback that gets invoked when the PanelSlider needs
         // to render this panel.
         // panel - the Panel we're rendering
@@ -94,7 +95,7 @@ function initPanelSlider(visiblePanels) {
                     // Request PanelSlider to re-render this panel when the content promise
                     // resolves. It's possible this panel is no longer bound to this ID by
                     // then so the render request may be ignored.
-                    slider.renderContent(e.panelId);
+                    slider.render(e.panelId);
                 });
                 // Do a fast render while waiting
                 ui.preRenderPanelContent(e.dom, e.panelId, 'loading...');
@@ -692,8 +693,8 @@ function PanelSlider(cfg) {
     cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels;
     cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION;
     cfg.panelClassName = cfg.panelClassName || '';
-    cfg.dragRatio = cfg.dragRatio || 1.5;
-    cfg.dragThreshold = cfg.dragThreshold || 12;
+    cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO;
+    cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD;
     cfg.on = cfg.on || {};
     cfg.terp = cfg.terp || PanelSlider.terp;
     const emitters = {
@@ -996,7 +997,10 @@ function PanelSlider(cfg) {
         Object.keys(emitters).forEach(k => {
             emitters[k].length = 0;
         });
-        cfg.dom = undefined;
+        if (cfg.dom != null) {
+            cfg.dom.innerHTML = '';
+            cfg.dom = undefined;
+        }
     }
     window.addEventListener('resize', resize);
     return {
@@ -1008,7 +1012,8 @@ function PanelSlider(cfg) {
         getSizes: () => ({ fullWidth, panelWidth }),
         isDragging: dragger.isDragging,
         isAnimating: () => isAnimating,
-        renderContent: renderPanelContent,
+        render: renderPanelContent,
+        resize,
         destroy,
     };
 }
@@ -1017,6 +1022,8 @@ function PanelSlider(cfg) {
  */
 (function (PanelSlider) {
     PanelSlider.DEFAULT_SLIDE_DURATION = 500;
+    PanelSlider.DEFAULT_DRAG_THRESHOLD = 12;
+    PanelSlider.DEFAULT_DRAG_RATIO = 1.5;
     /**
      * Default animation interpolation function
      * @param x0 Start coordinate
