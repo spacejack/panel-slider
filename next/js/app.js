@@ -301,7 +301,7 @@ function renderIntro(dom) {
     const div = document.createElement('div');
     div.className = 'intro';
     div.innerHTML = `<h2 class="center">Panel-Slider</h2>
-<div class="center lg-lt">▶️</div>
+<div class="center lg-lt">&gt;</div>
 <p class="center">Swipe left or right to navigate.</p>
 <p>Panel content is loaded asynchronously.
 On a desktop you can resize the window width to change the number of panels.
@@ -316,7 +316,7 @@ function renderOutro(dom) {
     const div = document.createElement('div');
     div.className = 'intro';
     div.innerHTML = `<h2 class="center">Panel-Slider</h2>
-<div class="center lg-lt">◀️</div>
+<div class="center lg-lt">&lt;</div>
 <p class="center">Swipe left or right to navigate.</p>
 <p class="center">© 2019 by Mike Linkovich | <a href="https://github.com/spacejack">Github</a></p>`;
     dom.innerHTML = '';
