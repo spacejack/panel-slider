@@ -55,11 +55,17 @@ interface PanelSlider {
 	/** Returns whether panels are currently animating or not */
 	isAnimating(): boolean
 	/**
-	 * Forces a renderContent for the given panel ID (or all if none.)
-	 * The render will only occur if this panel Id is in the render cache.
-	 * Returns true if the render is performed otherwise false.
+	 * Triggers a render for the given panelId (or all panels if no index is provided.)
+	 * The render will only occur if this panel index is in the render cache.
+	 * Returns true if the render was performed otherwise false.
 	 */
-	renderContent(panelId: number): boolean
+	render(panelId?: number): boolean
+	/**
+	 * PanelSlider listens for window resize events, however if your application resizes
+	 * the container element you should call this method to ensure panel sizes and positions
+	 * are maintained correctly
+	 */
+	resize(): void
 	/** Destroy & cleanup resources */
 	destroy(): void
 }
@@ -74,8 +80,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels
 	cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION
 	cfg.panelClassName = cfg.panelClassName || ''
-	cfg.dragRatio = cfg.dragRatio || 1.5
-	cfg.dragThreshold = cfg.dragThreshold || 12
+	cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO
+	cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD
 	cfg.on = cfg.on || {}
 	cfg.terp = cfg.terp || PanelSlider.terp
 
@@ -431,7 +437,10 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		Object.keys(emitters).forEach(k => {
 			emitters[k as PanelSlider.EventType].length = 0
 		})
-		cfg.dom = undefined as any
+		if (cfg.dom != null) {
+			cfg.dom.innerHTML = ''
+			cfg.dom = undefined as any
+		}
 	}
 
 	window.addEventListener('resize', resize)
@@ -445,7 +454,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		getSizes: () => ({fullWidth, panelWidth}),
 		isDragging: dragger.isDragging,
 		isAnimating: () => isAnimating,
-		renderContent: renderPanelContent,
+		render: renderPanelContent,
+		resize,
 		destroy,
 	}
 }
@@ -455,6 +465,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
  */
 namespace PanelSlider {
 	export const DEFAULT_SLIDE_DURATION = 500
+	export const DEFAULT_DRAG_THRESHOLD = 12
+	export const DEFAULT_DRAG_RATIO = 1.5
 
 	/**
 	 * Default animation interpolation function

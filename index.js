@@ -473,8 +473,8 @@ var __assign = (this && this.__assign) || function () {
         cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels;
         cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION;
         cfg.panelClassName = cfg.panelClassName || '';
-        cfg.dragRatio = cfg.dragRatio || 1.5;
-        cfg.dragThreshold = cfg.dragThreshold || 12;
+        cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO;
+        cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD;
         cfg.on = cfg.on || {};
         cfg.terp = cfg.terp || PanelSlider.terp;
         var emitters = {
@@ -787,7 +787,10 @@ var __assign = (this && this.__assign) || function () {
             Object.keys(emitters).forEach(function (k) {
                 emitters[k].length = 0;
             });
-            cfg.dom = undefined;
+            if (cfg.dom != null) {
+                cfg.dom.innerHTML = '';
+                cfg.dom = undefined;
+            }
         }
         window.addEventListener('resize', resize);
         return {
@@ -799,7 +802,8 @@ var __assign = (this && this.__assign) || function () {
             getSizes: function () { return ({ fullWidth: fullWidth, panelWidth: panelWidth }); },
             isDragging: dragger.isDragging,
             isAnimating: function () { return isAnimating; },
-            renderContent: renderPanelContent,
+            render: renderPanelContent,
+            resize: resize,
             destroy: destroy,
         };
     }
@@ -808,6 +812,8 @@ var __assign = (this && this.__assign) || function () {
      */
     (function (PanelSlider) {
         PanelSlider.DEFAULT_SLIDE_DURATION = 500;
+        PanelSlider.DEFAULT_DRAG_THRESHOLD = 12;
+        PanelSlider.DEFAULT_DRAG_RATIO = 1.5;
         /**
          * Default animation interpolation function
          * @param x0 Start coordinate

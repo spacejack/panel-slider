@@ -26,6 +26,7 @@ function initPanelSlider (visiblePanels: number) {
 		maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
 		slideDuration: SLIDE_DURATION,
 		panelClassName: 'panel',
+		dragThreshold: 2,
 		// Callback that gets invoked when the PanelSlider needs
 		// to render this panel.
 		// panel - the Panel we're rendering
@@ -55,7 +56,7 @@ function initPanelSlider (visiblePanels: number) {
 					// Request PanelSlider to re-render this panel when the content promise
 					// resolves. It's possible this panel is no longer bound to this ID by
 					// then so the render request may be ignored.
-					slider.renderContent(e.panelId)
+					slider.render(e.panelId)
 				})
 				// Do a fast render while waiting
 				ui.preRenderPanelContent(e.dom, e.panelId, 'loading...')

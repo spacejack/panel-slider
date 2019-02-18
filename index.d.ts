@@ -50,11 +50,17 @@ interface PanelSlider {
     /** Returns whether panels are currently animating or not */
     isAnimating(): boolean;
     /**
-     * Forces a renderContent for the given panel ID (or all if none.)
-     * The render will only occur if this panel Id is in the render cache.
-     * Returns true if the render is performed otherwise false.
+     * Triggers a render for the given panelId (or all panels if no index is provided.)
+     * The render will only occur if this panel index is in the render cache.
+     * Returns true if the render was performed otherwise false.
      */
-    renderContent(panelId: number): boolean;
+    render(panelId?: number): boolean;
+    /**
+     * PanelSlider listens for window resize events, however if your application resizes
+     * the container element you should call this method to ensure panel sizes and positions
+     * are maintained correctly
+     */
+    resize(): void;
     /** Destroy & cleanup resources */
     destroy(): void;
 }
@@ -67,6 +73,8 @@ declare function PanelSlider(cfg: PanelSlider.Options): PanelSlider;
  */
 declare namespace PanelSlider {
     const DEFAULT_SLIDE_DURATION = 500;
+    const DEFAULT_DRAG_THRESHOLD = 12;
+    const DEFAULT_DRAG_RATIO = 1.5;
     /**
      * Default animation interpolation function
      * @param x0 Start coordinate

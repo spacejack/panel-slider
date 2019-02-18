@@ -17,12 +17,17 @@ export interface SwipeOptions {
 	unitDuration: number
 }
 
+export interface SwipeResult {
+	panelId: number
+	duration: number
+}
+
 /**
  * Compute "throw" from swipe
  */
 export function swipe ({
 	panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, unitDuration
-}: SwipeOptions) {
+}: SwipeOptions): SwipeResult {
 	/** Minimum duration of animation */
 	const MIN_DUR_MS = 17
 	/** Max throw velocity */
