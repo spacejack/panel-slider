@@ -136,9 +136,13 @@ export default function App(): m.Component {
 	return {
 		oncreate: vnode => {
 			dom = vnode.dom as HTMLElement
-			numVisiblePanels = calcVisiblePanels()
-			initPanelSlider(numVisiblePanels)
-			window.addEventListener('resize', resize)
+			// Defer PanelSlider init until document has loaded
+			// to ensure that CSS styles have been applied.
+			window.addEventListener('load', () => {
+				numVisiblePanels = calcVisiblePanels()
+				initPanelSlider(numVisiblePanels)
+				window.addEventListener('resize', resize)
+			})
 		},
 		onremove: () => {
 			window.removeEventListener('resize', resize)
