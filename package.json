@@ -6,13 +6,14 @@
   "license": "MIT",
   "main": "index.js",
   "scripts": {
-    "build:lib": "tsc -p src --emitDeclarationOnly && mv src/index.d.ts . && rm src/*.d.ts && browserify src/index.ts -p [ tsify --project src/tsconfig.json ] -s PanelSlider -o index.js",
+    "build-old:lib": "tsc -p src --emitDeclarationOnly && mv src/index.d.ts . && rm src/*.d.ts && browserify src/index.ts -p [ tsify --project src/tsconfig.json ] -s PanelSlider -o index.js",
+    "build:lib": "tsc -p src",
     "serve:ex": "http-server -p 3000 example/public",
     "compile:ex": "browserify --debug example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
     "watch:ex": "watchify -v --debug example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
     "build:ex": "browserify example/src/main.ts -p [ tsify --project example/src/tsconfig.json ] -o example/public/js/app.js",
     "clean:ex": "rm -f example/public/js/app.js",
-    "clean:lib": "rm -f index.js index.d.ts src/*.d.ts src/*.js",
+    "clean:lib": "rm -f *.js *.d.ts",
     "build": "run-s build:*",
     "clean": "run-s clean:*",
     "start": "run-p watch:ex serve:ex"
