@@ -12,7 +12,7 @@
     "compile:ex": "browserify --debug example-mithril/src/main.ts -p [ tsify --project example-mithril/src/tsconfig.json ] -o example-mithril/public/js/app.js",
     "watch:ex": "watchify -v --debug example-mithril/src/main.ts -p [ tsify --project example-mithril/src/tsconfig.json ] -o example-mithril/public/js/app.js",
     "build:ex": "browserify example-mithril/src/main.ts -p [ tsify --project example-mithril/src/tsconfig.json ] -o example-mithril/public/js/app.js",
-    "clean:ex": "rm -f example-mithril/public/js/app.js",
+    "clean:ex": "rm -f example/public/js/app.js example-mithril/public/js/app.js",
     "clean:lib": "rm -f *.js *.d.ts",
     "build": "run-s build:*",
     "clean": "run-s clean:*",

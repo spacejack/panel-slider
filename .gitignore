@@ -2,4 +2,5 @@
 *.log
 *.ini
 /example/public/js/*.js
+/example-mithril/public/js/*.js
 /tmp
