@@ -30,7 +30,6 @@ const NAV_ITEMS = array_1.range(0, NUM_PANELS, 10).map(i => String(i));
  */
 function App() {
     let slider;
-    let containerWidth = 200;
     let numVisiblePanels = 1;
     let dom;
     const panelId = stream_1.default(0);
@@ -49,7 +48,7 @@ function App() {
             totalPanels: NUM_PANELS,
             visiblePanels,
             initialPanel,
-            maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
+            maxSwipePanels: visiblePanels === 1 ? 1 : 4 * visiblePanels,
             slideDuration: SLIDE_DURATION,
             panelClassName: 'panel',
             dragThreshold: 1,
@@ -106,8 +105,8 @@ function App() {
     }
     /** Compute how many panel widths fit in the container */
     function calcVisiblePanels() {
-        containerWidth = dom.getBoundingClientRect().width;
-        return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1);
+        const w = dom.getBoundingClientRect().width;
+        return Math.max(Math.floor(w / MIN_PANEL_WIDTH), 1);
     }
     /** Handle nav page button click */
     function onNavChange(e) {
@@ -140,6 +139,8 @@ function App() {
     return {
         oncreate: vnode => {
             dom = vnode.dom;
+            // Defer PanelSlider init until document has loaded
+            // to ensure that CSS styles have been applied.
             window.addEventListener('load', () => {
                 numVisiblePanels = calcVisiblePanels();
                 initPanelSlider(numVisiblePanels);

@@ -21,7 +21,6 @@ const NAV_ITEMS = range(0, NUM_PANELS, 10).map(i => String(i))
  */
 export default function App(): m.Component {
 	let slider: PanelSlider
-	let containerWidth = 200
 	let numVisiblePanels = 1
 	let dom: HTMLElement
 	const panelId = stream(0)
@@ -41,7 +40,7 @@ export default function App(): m.Component {
 			totalPanels: NUM_PANELS,  // # of total panels
 			visiblePanels, // # of panels that fit on screen
 			initialPanel,
-			maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
+			maxSwipePanels: visiblePanels === 1 ? 1 : 4 * visiblePanels,
 			slideDuration: SLIDE_DURATION,
 			panelClassName: 'panel',
 			dragThreshold: 1,
@@ -97,8 +96,8 @@ export default function App(): m.Component {
 
 	/** Compute how many panel widths fit in the container */
 	function calcVisiblePanels() {
-		containerWidth = dom.getBoundingClientRect().width
-		return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1)
+		const w = dom.getBoundingClientRect().width
+		return Math.max(Math.floor(w / MIN_PANEL_WIDTH), 1)
 	}
 
 	/** Handle nav page button click */

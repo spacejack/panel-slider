@@ -23,7 +23,7 @@ function initPanelSlider (visiblePanels: number) {
 		totalPanels: NUM_PANELS,  // # of total panels
 		visiblePanels, // # of panels that fit on screen
 		initialPanel,
-		maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
+		maxSwipePanels: visiblePanels === 1 ? 1 : 4 * visiblePanels,
 		slideDuration: SLIDE_DURATION,
 		panelClassName: 'panel',
 		dragThreshold: 2,
