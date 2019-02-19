@@ -140,9 +140,11 @@ function App() {
     return {
         oncreate: vnode => {
             dom = vnode.dom;
-            numVisiblePanels = calcVisiblePanels();
-            initPanelSlider(numVisiblePanels);
-            window.addEventListener('resize', resize);
+            window.addEventListener('load', () => {
+                numVisiblePanels = calcVisiblePanels();
+                initPanelSlider(numVisiblePanels);
+                window.addEventListener('resize', resize);
+            });
         },
         onremove: () => {
             window.removeEventListener('resize', resize);
