@@ -29,9 +29,6 @@ function initPanelSlider (visiblePanels: number) {
 		dragThreshold: 2,
 		// Callback that gets invoked when the PanelSlider needs
 		// to render this panel.
-		// panel - the Panel we're rendering
-		// fast  - a boolean indicating if this is a 'fast' (animating)
-		//         frame, in which case we should skip async/heavy tasks.
 		renderContent: (e) => {
 			if (e.panelId === 0) {
 				ui.renderIntro(e.dom)
