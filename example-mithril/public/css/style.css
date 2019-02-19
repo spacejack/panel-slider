@@ -1,0 +1,141 @@
+body {
+	font-family: sans-serif;
+	font-size: 16px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+html, body {
+	height: 100%;
+}
+
+nav {
+	position: absolute;
+	top: 1em;
+	left: 1em;
+	/*max-width: 20em;*/
+}
+
+nav .group {
+	display: inline-block;
+	margin-right: 0.5em;
+}
+
+@media (max-width: 430px) {
+	.mq-lp {
+		display: none;
+	}
+}
+
+@media (max-width: 370px) {
+	.mq-md,
+	nav .group.mq-md {
+		display: none;
+	}
+}
+
+button {
+	font-family: sans-serif;
+	font-size: 1em;
+	color: #333;
+	background-color: #DDD;
+	border: #999 1px solid;
+	padding: 0.5em;
+	border-radius: 0.125em;
+	cursor: pointer;
+}
+button:hover {
+	background-color: #BBB;
+	border-color: #777;
+}
+button:active {
+	color: #666;
+	background-color: #AAA;
+	border-color: #333;
+}
+
+button.btn-pg {
+	font-size: 0.675em;
+	margin-right: 0.25em;
+	padding: 0;
+	width: 2em;
+	height: 2em;
+}
+
+.container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow-x: hidden;
+}
+
+.lg-lt {
+	font-size: 8em;
+	line-height: 1.5em;
+	height: 1.6em;
+	color: #DDD;
+}
+
+.center {
+	text-align: center;
+}
+
+.intro {
+	padding: 0 2em;
+	box-sizing: border-box;
+}
+
+.panel-set {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%; }
+
+	.panel-set .panel {
+		/* Set by PanelSlider
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 100%;
+		width: 100%;
+		*/
+		box-sizing: border-box;
+		padding: 1em;
+		overflow-x: hidden;
+		overflow-y: auto;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-overflow-scrolling: touch;
+		-ms-overflow-style: scrollbar; }
+
+		.panel-set .panel h2 {
+			margin-top: 1.5em; }
+
+		.panel-set .panel img {
+			pointer-events: none;
+			user-select: none;
+			-webkit-user-select: none;
+			-ms-user-select: none; }
+
+/* For linebreaks without adding br tags */
+.pbr {
+	white-space: pre-line;
+}
+
+.stats {
+	font-size: 0.8em;
+	font-family: monospace;
+	color: #666;
+	position: absolute;
+	top: 0.25em;
+	right: 1.5em;
+	user-select: none;
+}
+
+.stats table {
+	background-color: rgba(0,0,0,0.075);
+}

@@ -1,6 +1,6 @@
 "use strict";
+// tslint:disable unified-signatures
 Object.defineProperty(exports, "__esModule", { value: true });
-/** Generate an array sequence of numbers from start up to but not including end incrementing by step */
 function range(start, end, step) {
     step = step || 1;
     if (end == null) {

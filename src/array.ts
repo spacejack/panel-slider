@@ -1,8 +1,12 @@
+// tslint:disable unified-signatures
+
 /** Generate an array sequence of num numbers starting from 0 incrementing by 1 */
 export function range (num: number): number[]
 /** Generate an array sequence of numbers starting from start up to but not including end, incrementing by 1 */
 export function range (start: number, end: number): number[] // tslint:disable-line unified-signatures
 /** Generate an array sequence of numbers from start up to but not including end incrementing by step */
+export function range (start: number, end: number, step: number): number[]
+
 export function range (start: number, end?: number, step?: number): number[] {
 	step = step || 1
 	if (end == null) {
