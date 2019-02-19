@@ -139,6 +139,7 @@ declare namespace PanelSlider {
         animate?(e: AnimateEvent): void;
         animationstatechange?(e: AnimationEvent): void;
         panelchange?(e: ChangeEvent): void;
+        panelswipe?(e: ChangeEvent): void;
     }
     interface EventEmitters {
         dragstart: ((e: DragEvent) => void)[];
@@ -148,6 +149,7 @@ declare namespace PanelSlider {
         animate: ((e: AnimateEvent) => void)[];
         animationstatechange: ((e: AnimationEvent) => void)[];
         panelchange: ((e: ChangeEvent) => void)[];
+        panelswipe: ((e: ChangeEvent) => void)[];
     }
     /** Event types */
     type EventType = keyof EventEmitters;

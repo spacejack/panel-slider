@@ -50,7 +50,8 @@ function PanelSlider(cfg) {
         dragcancel: [],
         animate: [],
         animationstatechange: [],
-        panelchange: []
+        panelchange: [],
+        panelswipe: []
     };
     for (var _i = 0, _a = Object.keys(cfg.on); _i < _a.length; _i++) {
         var key = _a[_i];
@@ -158,7 +159,7 @@ function PanelSlider(cfg) {
                 console.log("updating panel: " + i);
             }
             panel.index = i;
-            panel.state = cfg.renderContent(new PanelSlider.RenderEvent('preview', panel.dom, panel.index));
+            panel.state = cfg.renderContent(new PanelSlider.RenderEvent(fast ? 'preview' : 'render', panel.dom, panel.index));
             transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
             keepPanels[i] = panel;
         }
@@ -202,7 +203,7 @@ function PanelSlider(cfg) {
             },
             dragcancel: function () {
                 emit(new PanelSlider.DragEvent('dragcancel', curPosX, 0));
-                swipeAnim(0, function (pid) {
+                swipeAnim(0).then(function (pid) {
                     emit(new PanelSlider.ChangeEvent('panelchange', pid));
                 });
             },
@@ -211,7 +212,7 @@ function PanelSlider(cfg) {
                 //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
                 curPosX = applyOverscroll(Math.round(ox + e.x));
                 render();
-                swipeAnim(e.xv, function (pid) {
+                swipeAnim(e.xv).then(function (pid) {
                     emit(new PanelSlider.ChangeEvent('panelchange', pid));
                 });
                 emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
@@ -228,7 +229,7 @@ function PanelSlider(cfg) {
      * @param xVelocity Speed of swipe in pixels/second
      * @param done callback when swipe ends
      */
-    function swipeAnim(xVelocity, done) {
+    function swipeAnim(xVelocity) {
         var result = gesture.swipe({
             panelId: curPanel,
             x: curPosX, xv: xVelocity,
@@ -237,62 +238,64 @@ function PanelSlider(cfg) {
             unitDuration: cfg.slideDuration,
             totalPanels: cfg.totalPanels - (cfg.visiblePanels - 1)
         });
-        animateTo(result.panelId, result.duration, done);
+        return animateTo(result.panelId, result.duration);
     }
     /** Animate panels to the specified panelId */
-    function animateTo(destPanel, dur, done) {
+    function animateTo(destPanel, dur) {
         if (dur === void 0) { dur = cfg.slideDuration; }
         if (isAnimating) {
             // TODO: Allow redirect
             console.warn("Cannot animateTo - already animating");
-            return;
+            return Promise.resolve(curPanel);
         }
         if (dragger.isDragging()) {
             console.warn("Cannot animateTo - currently dragging");
-            return;
+            return Promise.resolve(curPanel);
         }
-        isAnimating = true;
-        var startX = curPosX;
-        var destX = -destPanel * panelWidth;
-        function finish() {
-            curPanel = destPanel;
-            isAnimating = false;
-            emit(new PanelSlider.AnimationEvent('animationstatechange', false));
-            done && done(curPanel);
-        }
-        function loop() {
-            if (!isAnimating) {
-                // Animation has been cancelled, assume
-                // something else has changed curPanel.
-                // (eg. setPanelImmediate)
-                done && done(curPanel);
+        return new Promise(function (resolve) {
+            isAnimating = true;
+            var startX = curPosX;
+            var destX = -destPanel * panelWidth;
+            function finish() {
+                curPanel = destPanel;
+                isAnimating = false;
                 emit(new PanelSlider.AnimationEvent('animationstatechange', false));
+                resolve(curPanel);
+            }
+            function loop() {
+                if (!isAnimating) {
+                    // Animation has been cancelled, assume
+                    // something else has changed curPanel.
+                    // (eg. setPanelImmediate)
+                    //emit(new PanelSlider.AnimationEvent('animationstatechange', false))
+                    //resolve(curPanel)
+                    return;
+                }
+                var t = Date.now();
+                var destX = -destPanel * panelWidth;
+                var totalT = t - startT;
+                var animT = Math.min(totalT, dur);
+                curPosX = cfg.terp(startX, destX, animT / dur);
+                // Use a 'fast' render unless this is the last frame of the animation
+                var isLastFrame = totalT >= dur;
+                render(!isLastFrame);
+                emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
+                if (!isLastFrame) {
+                    requestAnimationFrame(loop);
+                }
+                else {
+                    finish();
+                }
+            }
+            if (destX === startX) {
+                requestAnimationFrame(finish);
+                emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
                 return;
             }
-            var t = Date.now();
-            var destX = -destPanel * panelWidth;
-            var totalT = t - startT;
-            var animT = Math.min(totalT, dur);
-            curPosX = cfg.terp(startX, destX, animT / dur);
-            // Use a 'fast' render unless this is the last frame of the animation
-            var isLastFrame = totalT >= dur;
-            render(!isLastFrame);
+            var startT = Date.now();
+            requestAnimationFrame(loop);
             emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
-            if (!isLastFrame) {
-                requestAnimationFrame(loop);
-            }
-            else {
-                finish();
-            }
-        }
-        if (destX === startX) {
-            requestAnimationFrame(finish);
-            emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
-            return;
-        }
-        var startT = Date.now();
-        requestAnimationFrame(loop);
-        emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
+        });
     }
     ///////////////////////////////////////////////////////
     // Public
@@ -318,16 +321,14 @@ function PanelSlider(cfg) {
     /**
      * Animates to position and updates panel index.
      * The animation could be redirected or aborted,
-     * so the result index may not be what was
-     * requested or the promise may not resolve.
+     * so the resulting index may not be what was
+     * requested. Or the promise may not resolve.
      */
     function setPanel(panelId, duration) {
         if (duration === void 0) { duration = cfg.slideDuration; }
         return panelId === curPanel
             ? Promise.resolve(panelId)
-            : new Promise(function (r) {
-                animateTo(panelId, duration, r);
-            });
+            : animateTo(panelId, duration);
     }
     /** Sets the current panel index immediately, no animation */
     function setPanelImmediate(panelId) {

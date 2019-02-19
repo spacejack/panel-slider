@@ -62,10 +62,11 @@ export default function App(): m.Component {
 					// Content is available now - render it:
 					renderPanelContent(e.dom, e.panelId, c)
 					// Indicate did render
+					console.log('rendered panel:', e.panelId)
 					return PanelSlider.RENDERED
 				} else if (e.type === 'render') {
 					// Content not available yet - fetch
-					c = c || Promise.resolve(content.get(e.panelId))
+					c = c || content.get(e.panelId) as Promise<string[]>
 					c.then(() => {
 						// Request PanelSlider to re-render this panel when the content promise
 						// resolves. It's possible this panel is no longer bound to this ID by

@@ -92,7 +92,8 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		dragcancel: [],
 		animate: [],
 		animationstatechange: [],
-		panelchange: []
+		panelchange: [],
+		panelswipe: []
 	}
 	for (const key of Object.keys(cfg.on) as (keyof PanelSlider.EventListeners)[]) {
 		if (cfg.on[key] != null) {
@@ -209,7 +210,9 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			}
 			panel.index = i
 			panel.state = cfg.renderContent(
-				new PanelSlider.RenderEvent('preview', panel.dom, panel.index)
+				new PanelSlider.RenderEvent(
+					fast ? 'preview' : 'render', panel.dom, panel.index
+				)
 			)
 			setPos3d(panel.dom, curPosX - i * panelWidth)
 			keepPanels[i] = panel
@@ -261,7 +264,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			},
 			dragcancel() {
 				emit(new PanelSlider.DragEvent('dragcancel', curPosX, 0))
-				swipeAnim(0, pid => {
+				swipeAnim(0).then(pid => {
 					emit(new PanelSlider.ChangeEvent('panelchange', pid))
 				})
 			},
@@ -270,7 +273,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 				//curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
 				curPosX = applyOverscroll(Math.round(ox + e.x))
 				render()
-				swipeAnim(e.xv, pid => {
+				swipeAnim(e.xv).then(pid => {
 					emit(new PanelSlider.ChangeEvent('panelchange', pid))
 				})
 				emit(new PanelSlider.AnimateEvent(
@@ -290,7 +293,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	 * @param xVelocity Speed of swipe in pixels/second
 	 * @param done callback when swipe ends
 	 */
-	function swipeAnim (xVelocity: number, done?: (panelId: number) => void) {
+	function swipeAnim (xVelocity: number) {
 		const result = gesture.swipe({
 			panelId: curPanel,
 			x: curPosX, xv: xVelocity,
@@ -299,78 +302,76 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 			unitDuration: cfg.slideDuration!,
 			totalPanels: cfg.totalPanels - (cfg.visiblePanels! - 1)
 		})
-		animateTo(result.panelId, result.duration, done)
+		return animateTo(result.panelId, result.duration)
 	}
 
 	/** Animate panels to the specified panelId */
-	function animateTo (
-		destPanel: number, dur = cfg.slideDuration!, done?: (panelId: number) => void
-	) {
+	function animateTo (destPanel: number, dur = cfg.slideDuration!): Promise<number> {
 		if (isAnimating) {
 			// TODO: Allow redirect
 			console.warn("Cannot animateTo - already animating")
-			return
+			return Promise.resolve(curPanel)
 		}
 		if (dragger.isDragging()) {
 			console.warn("Cannot animateTo - currently dragging")
-			return
+			return Promise.resolve(curPanel)
 		}
 
-		isAnimating = true
-		const startX = curPosX
-		const destX = -destPanel * panelWidth
+		return new Promise(resolve => {
+			isAnimating = true
+			const startX = curPosX
+			const destX = -destPanel * panelWidth
 
-		function finish() {
-			curPanel = destPanel
-			isAnimating = false
-			emit(new PanelSlider.AnimationEvent(
-				'animationstatechange', false
-			))
-			done && done(curPanel)
-		}
-
-		function loop() {
-			if (!isAnimating) {
-				// Animation has been cancelled, assume
-				// something else has changed curPanel.
-				// (eg. setPanelImmediate)
-				done && done(curPanel)
+			function finish() {
+				curPanel = destPanel
+				isAnimating = false
 				emit(new PanelSlider.AnimationEvent(
 					'animationstatechange', false
 				))
+				resolve(curPanel)
+			}
+
+			function loop() {
+				if (!isAnimating) {
+					// Animation has been cancelled, assume
+					// something else has changed curPanel.
+					// (eg. setPanelImmediate)
+					//emit(new PanelSlider.AnimationEvent('animationstatechange', false))
+					//resolve(curPanel)
+					return
+				}
+				const t = Date.now()
+				const destX = -destPanel * panelWidth
+				const totalT = t - startT
+				const animT = Math.min(totalT, dur)
+				curPosX = cfg.terp!(startX, destX, animT / dur)
+				// Use a 'fast' render unless this is the last frame of the animation
+				const isLastFrame = totalT >= dur
+				render(!isLastFrame)
+				emit(new PanelSlider.AnimateEvent(
+					'animate', -curPosX / panelWidth
+				))
+				if (!isLastFrame) {
+					requestAnimationFrame(loop)
+				} else {
+					finish()
+				}
+			}
+
+			if (destX === startX) {
+				requestAnimationFrame(finish)
+				emit(new PanelSlider.AnimateEvent(
+					'animate', -curPosX / panelWidth
+				))
 				return
 			}
-			const t = Date.now()
-			const destX = -destPanel * panelWidth
-			const totalT = t - startT
-			const animT = Math.min(totalT, dur)
-			curPosX = cfg.terp!(startX, destX, animT / dur)
-			// Use a 'fast' render unless this is the last frame of the animation
-			const isLastFrame = totalT >= dur
-			render(!isLastFrame)
+
+			const startT = Date.now()
+			requestAnimationFrame(loop)
 			emit(new PanelSlider.AnimateEvent(
 				'animate', -curPosX / panelWidth
 			))
-			if (!isLastFrame) {
-				requestAnimationFrame(loop)
-			} else {
-				finish()
-			}
-		}
-
-		if (destX === startX) {
-			requestAnimationFrame(finish)
-			emit(new PanelSlider.AnimateEvent(
-				'animate', -curPosX / panelWidth
-			))
-			return
-		}
-
-		const startT = Date.now()
-		requestAnimationFrame(loop)
-		emit(new PanelSlider.AnimateEvent(
-			'animate', -curPosX / panelWidth
-		))
+		})
 	}
 
 	///////////////////////////////////////////////////////
@@ -401,15 +402,13 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	/**
 	 * Animates to position and updates panel index.
 	 * The animation could be redirected or aborted,
-	 * so the result index may not be what was
-	 * requested or the promise may not resolve.
+	 * so the resulting index may not be what was
+	 * requested. Or the promise may not resolve.
 	 */
-	function setPanel (panelId: number, duration = cfg.slideDuration) {
+	function setPanel (panelId: number, duration = cfg.slideDuration): Promise<number> {
 		return panelId === curPanel
 			? Promise.resolve(panelId)
-			: new Promise<number>(r => {
-				animateTo(panelId, duration, r)
-			})
+			: animateTo(panelId, duration)
 	}
 
 	/** Sets the current panel index immediately, no animation */
@@ -565,6 +564,7 @@ namespace PanelSlider {
 		animate?(e: AnimateEvent): void
 		animationstatechange?(e: AnimationEvent): void
 		panelchange?(e: ChangeEvent): void
+		panelswipe?(e: ChangeEvent): void
 	}
 
 	export interface EventEmitters {
@@ -575,6 +575,7 @@ namespace PanelSlider {
 		animate: ((e: AnimateEvent) => void)[]
 		animationstatechange: ((e: AnimationEvent) => void)[]
 		panelchange: ((e: ChangeEvent) => void)[]
+		panelswipe: ((e: ChangeEvent) => void)[]
 	}
 
 	/** Event types */
