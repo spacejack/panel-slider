@@ -13,13 +13,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mithril_1 = __importDefault(require("mithril"));
 const stream_1 = __importDefault(require("mithril/stream"));
-const array_1 = require("../../src/array");
-const math_1 = require("../../src/math");
-const src_1 = __importDefault(require("../../src"));
-const content = __importStar(require("./content"));
+const array_1 = require("../../../src/array");
+const math_1 = require("../../../src/math");
+const src_1 = __importDefault(require("../../../src"));
+const content = __importStar(require("../content"));
 const Nav_1 = __importDefault(require("./Nav"));
+const Configuration_1 = __importDefault(require("./Configuration"));
 const Stats_1 = __importDefault(require("./Stats"));
-const render_1 = require("./render");
+const render_1 = require("../render");
 const NUM_PANELS = 101;
 const MIN_PANEL_WIDTH = 360;
 const SLIDE_DURATION = 400;
@@ -29,12 +30,18 @@ const NAV_ITEMS = array_1.range(0, NUM_PANELS, 10).map(i => String(i));
  * Stateful component that manages a PanelSlider instance.
  */
 function App() {
-    let slider;
-    let containerWidth = 200;
-    let numVisiblePanels = 1;
-    let dom;
     const panelId = stream_1.default(0);
     const panelPosition = stream_1.default(0);
+    let slider;
+    let dom;
+    let numVisiblePanels = 1;
+    let configOpen = false;
+    let userConfig = {
+        slideDuration: SLIDE_DURATION,
+        swipeForce: 1,
+        contentSize: '3',
+        maxSwipePanels: undefined
+    };
     /**
      * (Re)Create & configure a PanelSlider instance
      */
@@ -49,8 +56,11 @@ function App() {
             totalPanels: NUM_PANELS,
             visiblePanels,
             initialPanel,
-            maxSwipePanels: visiblePanels === 1 ? 1 : 3 * visiblePanels,
-            slideDuration: SLIDE_DURATION,
+            swipeForce: userConfig.swipeForce,
+            maxSwipePanels: userConfig.maxSwipePanels != null
+                ? userConfig.maxSwipePanels
+                : visiblePanels === 1 ? 1 : 4 * visiblePanels,
+            slideDuration: userConfig.slideDuration,
             panelClassName: 'panel',
             dragThreshold: 1,
             // Callback that gets invoked when the PanelSlider needs
@@ -75,7 +85,7 @@ function App() {
                 }
                 else if (e.type === 'render') {
                     // Content not available yet - fetch
-                    c = c || Promise.resolve(content.get(e.panelId));
+                    c = c || content.get(e.panelId);
                     c.then(() => {
                         // Request PanelSlider to re-render this panel when the content promise
                         // resolves. It's possible this panel is no longer bound to this ID by
@@ -106,11 +116,15 @@ function App() {
     }
     /** Compute how many panel widths fit in the container */
     function calcVisiblePanels() {
-        containerWidth = dom.getBoundingClientRect().width;
-        return Math.max(Math.floor(containerWidth / MIN_PANEL_WIDTH), 1);
+        const w = dom.getBoundingClientRect().width;
+        return Math.max(Math.floor(w / MIN_PANEL_WIDTH), 1);
     }
     /** Handle nav page button click */
     function onNavChange(e) {
+        if (e.type === 'config') {
+            configOpen = !configOpen;
+            return;
+        }
         const pid0 = slider.getPanel();
         let pid = pid0;
         if (e.type === 'goto') {
@@ -140,6 +154,8 @@ function App() {
     return {
         oncreate: vnode => {
             dom = vnode.dom;
+            // Defer PanelSlider init until document has loaded
+            // to ensure that CSS styles have been applied.
             window.addEventListener('load', () => {
                 numVisiblePanels = calcVisiblePanels();
                 initPanelSlider(numVisiblePanels);
@@ -158,12 +174,97 @@ function App() {
         }), mithril_1.default(Nav_1.default, {
             items: NAV_ITEMS,
             onNav: onNavChange
+        }), configOpen && mithril_1.default(Configuration_1.default, {
+            config: userConfig,
+            onChange: (c) => {
+                console.log('Updating settings to:', c);
+                Object.assign(userConfig, c);
+                render_1.contentSize(userConfig.contentSize);
+                configOpen = false;
+                initPanelSlider(numVisiblePanels);
+            },
+            onClose: () => {
+                configOpen = false;
+            }
         }))
     };
 }
 exports.default = App;
 
-},{"../../src":17,"../../src/array":15,"../../src/math":18,"./Nav":2,"./Stats":3,"./content":4,"./render":6,"mithril":7,"mithril/stream":8}],2:[function(require,module,exports){
+},{"../../../src":18,"../../../src/array":16,"../../../src/math":19,"../content":5,"../render":7,"./Configuration":2,"./Nav":3,"./Stats":4,"mithril":8,"mithril/stream":9}],2:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const mithril_1 = __importDefault(require("mithril"));
+const SIZES = { '1': 'small', '2': 'medium', '3': 'large' };
+function Configuration() {
+    let auto = false;
+    return {
+        oninit: ({ attrs }) => {
+            auto = !attrs.config.maxSwipePanels;
+        },
+        oncreate: ({ attrs, dom }) => {
+            setTimeout(() => {
+                const i = dom.querySelector('input');
+                i.focus();
+            }, 100);
+        },
+        view: ({ attrs: { config: c, onChange, onClose } }) => mithril_1.default('.configuration', mithril_1.default('h3', 'Settings'), mithril_1.default('form', {
+            onsubmit: (e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                onChange({
+                    slideDuration: Number(form.slideDuration.value),
+                    swipeForce: Number(form.swipeForce.value),
+                    contentSize: form.contentSize.value,
+                    maxSwipePanels: form.autoSwipePanels.checked
+                        ? undefined
+                        : Number(form.maxSwipePanels.value) || 1,
+                });
+            }
+        }, mithril_1.default('table.cfg', mithril_1.default('tr', mithril_1.default('td', 'Slide Duration:'), mithril_1.default('td', mithril_1.default('input', {
+            type: 'number',
+            min: 50, max: 1000,
+            style: 'width: 4em',
+            required: true,
+            name: 'slideDuration',
+            value: c.slideDuration
+        }))), mithril_1.default('tr', mithril_1.default('td', 'Swipe Force Multiplier:'), mithril_1.default('td', mithril_1.default('input', {
+            type: 'number',
+            min: 0.1, max: 10, step: 0.01,
+            style: 'width: 4em',
+            required: true,
+            name: 'swipeForce',
+            value: c.swipeForce
+        }))), mithril_1.default('tr', mithril_1.default('td', { colspan: 2 }, mithril_1.default('input', {
+            id: 'autoSwipePanels',
+            type: 'checkbox',
+            name: 'autoSwipePanels',
+            checked: auto,
+            onclick: (e) => {
+                auto = !auto;
+            }
+        }), mithril_1.default('label', { for: 'autoSwipePanels' }, ' Auto Swipe Travel'))), mithril_1.default('tr', mithril_1.default('td', { style: `opacity: ${auto ? '0.5' : '1'}` }, 'Max Swipe Travel:'), mithril_1.default('td', mithril_1.default('input', {
+            type: 'number',
+            disabled: auto,
+            required: !auto,
+            min: 1, max: 100,
+            style: 'width: 4em',
+            name: 'maxSwipePanels',
+            value: auto ? ''
+                : c.maxSwipePanels != null ? c.maxSwipePanels : '1'
+        }))), mithril_1.default('tr', mithril_1.default('td', 'Content Size:'), mithril_1.default('td', mithril_1.default('select', {
+            //style: 'width: 4em',
+            name: 'contentSize',
+            value: c.contentSize
+        }, Object.keys(SIZES).map(s => mithril_1.default('option', { value: s }, SIZES[s]))))), mithril_1.default('tr', mithril_1.default('td', { colspan: 2, style: 'text-align: center' }, mithril_1.default('button.btn-cfg', { type: 'button', onclick: onClose }, 'Cancel'), ' ', mithril_1.default('button.btn-cfg', { type: 'submit' }, 'Update'))))))
+    };
+}
+exports.default = Configuration;
+
+},{"mithril":8}],3:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -207,11 +308,17 @@ const Nav = {
         onclick: () => {
             attrs.onNav({ type: 'goto', id: i });
         }
-    }, item))))
+    }, item))), mithril_1.default('.group', mithril_1.default('button.btn-pg', {
+        type: 'button',
+        onclick: () => {
+            attrs.onNav({ type: 'config', id: 0 });
+        }
+    }, '⚙' //'☰'
+    )))
 };
 exports.default = Nav;
 
-},{"mithril":7}],3:[function(require,module,exports){
+},{"mithril":8}],4:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -230,7 +337,7 @@ const Stats = {
 };
 exports.default = Stats;
 
-},{"mithril":7}],4:[function(require,module,exports){
+},{"mithril":8}],5:[function(require,module,exports){
 "use strict";
 // This is a placeholder module that generates example content
 // from some public APIs.
@@ -252,7 +359,7 @@ exports.peek = peek;
 function get(id) {
     if (!cache.has(id)) {
         // Entry doesn't exist - start with a promise
-        console.log('fetching: ' + id);
+        console.log('fetching panel: ' + id);
         // Use BaconIpsum.com to generate some content for each panel
         cache.set(id, fetch('https://baconipsum.com/api/?type=meat-and-filler').then(response => response.json()).then(texts => {
             // When resolved, replace the promise with the
@@ -268,44 +375,50 @@ function get(id) {
 }
 exports.get = get;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mithril_1 = __importDefault(require("mithril"));
-const App_1 = __importDefault(require("./App"));
+const App_1 = __importDefault(require("./components/App"));
 mithril_1.default.mount(document.body, App_1.default);
 
-},{"./App":1,"mithril":7}],6:[function(require,module,exports){
+},{"./components/App":1,"mithril":8}],7:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mithril_1 = __importDefault(require("mithril"));
+const stream_1 = __importDefault(require("mithril/stream"));
+exports.contentSize = stream_1.default('3');
 // Panel content rendering
 const picsumOffset = Math.floor(Math.random() * 1000);
 /** Render panel content. Returns DOM tree. */
 function renderPanelContent(dom, pid, texts) {
-    mithril_1.default.render(dom, mithril_1.default('div', mithril_1.default('h2', `${pid}. ${texts[1].substr(0, 10 + pid % 10).trim()}`), mithril_1.default('p', mithril_1.default('img', {
+    const sz = exports.contentSize();
+    mithril_1.default.render(dom, mithril_1.default('div', mithril_1.default('h2', `${pid}. ${texts[1].substr(0, 10 + pid % 10).trim()}`), sz >= '2' && mithril_1.default('p', mithril_1.default('img', {
         style: 'width: 300px; height: 200px',
         src: `https://picsum.photos/300/200?image=${picsumOffset + pid}`
-    })), texts.map(text => mithril_1.default('p', text))));
+    })), sz === '3'
+        ? texts.map(text => mithril_1.default('p', text))
+        : texts[0].substr(0, 2 * (10 + pid % 10)).trim()));
 }
 exports.renderPanelContent = renderPanelContent;
 /** Pre-render (fast) */
 function preRenderPanelContent(dom, pid, text) {
-    mithril_1.default.render(dom, mithril_1.default('div', mithril_1.default('h2', `${pid}. ...`), mithril_1.default('p', mithril_1.default('div', {
+    const sz = exports.contentSize();
+    mithril_1.default.render(dom, mithril_1.default('div', mithril_1.default('h2', `${pid}. ...`), sz >= '2' && mithril_1.default('p', mithril_1.default('div', {
         style: 'width: 300px; height: 200px; background-color: #DDD',
     })), mithril_1.default('p', { style: 'font-style: italic' }, text)));
 }
 exports.preRenderPanelContent = preRenderPanelContent;
 function renderIntro(dom) {
-    mithril_1.default.render(dom, mithril_1.default('.intro', mithril_1.default('h2.center', 'Panel-Slider'), mithril_1.default('.center.lg-lt', '➔'), mithril_1.default('p.center', 'Swipe left or right to navigate.'), mithril_1.default('p', 'Panel content is loaded asynchronously. '
+    mithril_1.default.render(dom, mithril_1.default('.intro', mithril_1.default('h2.center', 'Panel-Slider'), mithril_1.default('.small', mithril_1.default('.center.lg-lt', '➔'), mithril_1.default('p', 'Swipe left or right to navigate. Click the ⚙ button to adjust settings.'), mithril_1.default('p', 'Panel content is loaded asynchronously. '
         + 'On a desktop you can resize the window width to change the number of panels. '
-        + 'Mobile devices may show more panels in landscape orientation.'), mithril_1.default('p', 'Docs and source: ', mithril_1.default('a', { href: 'http://github.com/spacejack/panel-slider' }, 'Github Repo'))));
+        + 'Mobile devices may show more panels in landscape orientation.'), mithril_1.default('p', 'Docs and source: ', mithril_1.default('a', { href: 'http://github.com/spacejack/panel-slider' }, 'Github Repo')))));
 }
 exports.renderIntro = renderIntro;
 function renderOutro(dom) {
@@ -313,7 +426,7 @@ function renderOutro(dom) {
 }
 exports.renderOutro = renderOutro;
 
-},{"mithril":7}],7:[function(require,module,exports){
+},{"mithril":8,"mithril/stream":9}],8:[function(require,module,exports){
 (function (global,setImmediate){
 ;(function() {
 "use strict"
@@ -1573,12 +1686,12 @@ if (typeof module !== "undefined") module["exports"] = m
 else window.m = m
 }());
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"timers":11}],8:[function(require,module,exports){
+},{"timers":12}],9:[function(require,module,exports){
 "use strict"
 
 module.exports = require("./stream/stream")
 
-},{"./stream/stream":9}],9:[function(require,module,exports){
+},{"./stream/stream":10}],10:[function(require,module,exports){
 /* eslint-disable */
 ;(function() {
 "use strict"
@@ -1741,7 +1854,7 @@ else window.m = {stream : createStream}
 
 }());
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -1927,7 +2040,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (setImmediate,clearImmediate){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
@@ -2006,7 +2119,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
   delete immediateIds[id];
 };
 }).call(this,require("timers").setImmediate,require("timers").clearImmediate)
-},{"process/browser.js":10,"timers":11}],12:[function(require,module,exports){
+},{"process/browser.js":11,"timers":12}],13:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -2195,7 +2308,7 @@ function applyIOSHack() {
     iOSHackApplied = true;
 }
 
-},{"./Speedo":14}],13:[function(require,module,exports){
+},{"./Speedo":15}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /** Creates a Panel instance */
@@ -2237,7 +2350,7 @@ function Panel(index, widthPct, state = Panel.EMPTY, className = '') {
 })(Panel || (Panel = {}));
 exports.default = Panel;
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("./math");
@@ -2286,7 +2399,7 @@ function Speedo(numSamples = DEFAULT_SAMPLES) {
 }
 exports.default = Speedo;
 
-},{"./math":18}],15:[function(require,module,exports){
+},{"./math":19}],16:[function(require,module,exports){
 "use strict";
 // tslint:disable unified-signatures
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2305,24 +2418,24 @@ function range(start, end, step) {
 }
 exports.range = range;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const math_1 = require("./math");
+/** Minimum duration of animation */
+const MIN_DUR_MS = 17;
+/** Max throw velocity */
+const MAX_VEL = 25000;
+/* max distance we can travel */
+//const MAX_DIST = maxSwipePanels
 /**
  * Compute "throw" from swipe
  */
 function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, unitDuration }) {
-    /** Minimum duration of animation */
-    const MIN_DUR_MS = 17;
-    /** Max throw velocity */
-    const MAX_VEL = 10000;
-    /* max distance we can travel */
-    //const MAX_DIST = maxSwipePanels
     /** swipe velocity in px/s clamped to sane range */
     const xvel = math_1.clamp(xv, -MAX_VEL, MAX_VEL);
     /** Destination position */
-    const destX = x + xvel * 0.5;
+    const destX = x + xvel;
     /** Current index panel (where it is currently dragged to, not its resting position) */
     const p0 = Math.floor(-x / panelWidth);
     /** Destination panel index */
@@ -2359,7 +2472,7 @@ function swipe({ panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, unitDu
 }
 exports.swipe = swipe;
 
-},{"./math":18}],17:[function(require,module,exports){
+},{"./math":19}],18:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -2386,6 +2499,7 @@ function PanelSlider(cfg) {
     cfg.initialPanel = cfg.initialPanel || 0;
     cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels;
     cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION;
+    cfg.swipeForce = cfg.swipeForce || 1;
     cfg.panelClassName = cfg.panelClassName || '';
     cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO;
     cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD;
@@ -2398,7 +2512,8 @@ function PanelSlider(cfg) {
         dragcancel: [],
         animate: [],
         animationstatechange: [],
-        panelchange: []
+        panelchange: [],
+        panelswipe: []
     };
     for (const key of Object.keys(cfg.on)) {
         if (cfg.on[key] != null) {
@@ -2495,12 +2610,9 @@ function PanelSlider(cfg) {
                 console.warn('Could not find an available panel for id:', i);
                 continue;
             }
-            // Need to render this
-            if (!fast) {
-                console.log(`updating panel: ${i}`);
-            }
+            // Panel has old content so must render
             panel.index = i;
-            panel.state = cfg.renderContent(new PanelSlider.RenderEvent('preview', panel.dom, panel.index));
+            panel.state = cfg.renderContent(new PanelSlider.RenderEvent(fast ? 'preview' : 'render', panel.dom, panel.index));
             transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
             keepPanels[i] = panel;
         }
@@ -2542,7 +2654,7 @@ function PanelSlider(cfg) {
             },
             dragcancel() {
                 emit(new PanelSlider.DragEvent('dragcancel', curPosX, 0));
-                swipeAnim(0, pid => {
+                swipeAnim(0).then(pid => {
                     emit(new PanelSlider.ChangeEvent('panelchange', pid));
                 });
             },
@@ -2551,7 +2663,7 @@ function PanelSlider(cfg) {
                 //curPosX = Math.round(clamp(ox + e.x, -(fullWidth - panelWidth), 0))
                 curPosX = applyOverscroll(Math.round(ox + e.x));
                 render();
-                swipeAnim(e.xv, pid => {
+                swipeAnim(e.xv).then(pid => {
                     emit(new PanelSlider.ChangeEvent('panelchange', pid));
                 });
                 emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
@@ -2568,70 +2680,72 @@ function PanelSlider(cfg) {
      * @param xVelocity Speed of swipe in pixels/second
      * @param done callback when swipe ends
      */
-    function swipeAnim(xVelocity, done) {
+    function swipeAnim(xVelocity) {
         const result = gesture.swipe({
             panelId: curPanel,
-            x: curPosX, xv: xVelocity,
+            x: curPosX, xv: xVelocity * cfg.swipeForce,
             maxSwipePanels: cfg.maxSwipePanels,
             panelWidth,
             unitDuration: cfg.slideDuration,
             totalPanels: cfg.totalPanels - (cfg.visiblePanels - 1)
         });
-        animateTo(result.panelId, result.duration, done);
+        return animateTo(result.panelId, result.duration);
     }
     /** Animate panels to the specified panelId */
-    function animateTo(destPanel, dur = cfg.slideDuration, done) {
+    function animateTo(destPanel, dur = cfg.slideDuration) {
         if (isAnimating) {
             // TODO: Allow redirect
             console.warn("Cannot animateTo - already animating");
-            return;
+            return Promise.resolve(curPanel);
         }
         if (dragger.isDragging()) {
             console.warn("Cannot animateTo - currently dragging");
-            return;
+            return Promise.resolve(curPanel);
         }
-        isAnimating = true;
-        const startX = curPosX;
-        const destX = -destPanel * panelWidth;
-        function finish() {
-            curPanel = destPanel;
-            isAnimating = false;
-            emit(new PanelSlider.AnimationEvent('animationstatechange', false));
-            done && done(curPanel);
-        }
-        function loop() {
-            if (!isAnimating) {
-                // Animation has been cancelled, assume
-                // something else has changed curPanel.
-                // (eg. setPanelImmediate)
-                done && done(curPanel);
+        return new Promise(resolve => {
+            isAnimating = true;
+            const startX = curPosX;
+            const destX = -destPanel * panelWidth;
+            function finish() {
+                curPanel = destPanel;
+                isAnimating = false;
                 emit(new PanelSlider.AnimationEvent('animationstatechange', false));
+                resolve(curPanel);
+            }
+            function loop() {
+                if (!isAnimating) {
+                    // Animation has been cancelled, assume
+                    // something else has changed curPanel.
+                    // (eg. setPanelImmediate)
+                    //emit(new PanelSlider.AnimationEvent('animationstatechange', false))
+                    //resolve(curPanel)
+                    return;
+                }
+                const t = Date.now();
+                const destX = -destPanel * panelWidth;
+                const totalT = t - startT;
+                const animT = Math.min(totalT, dur);
+                curPosX = cfg.terp(startX, destX, animT / dur);
+                // Use a 'fast' render unless this is the last frame of the animation
+                const isLastFrame = totalT >= dur;
+                render(!isLastFrame);
+                emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
+                if (!isLastFrame) {
+                    requestAnimationFrame(loop);
+                }
+                else {
+                    finish();
+                }
+            }
+            if (destX === startX) {
+                requestAnimationFrame(finish);
+                emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
                 return;
             }
-            const t = Date.now();
-            const destX = -destPanel * panelWidth;
-            const totalT = t - startT;
-            const animT = Math.min(totalT, dur);
-            curPosX = cfg.terp(startX, destX, animT / dur);
-            // Use a 'fast' render unless this is the last frame of the animation
-            const isLastFrame = totalT >= dur;
-            render(!isLastFrame);
+            const startT = Date.now();
+            requestAnimationFrame(loop);
             emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
-            if (!isLastFrame) {
-                requestAnimationFrame(loop);
-            }
-            else {
-                finish();
-            }
-        }
-        if (destX === startX) {
-            requestAnimationFrame(finish);
-            emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
-            return;
-        }
-        const startT = Date.now();
-        requestAnimationFrame(loop);
-        emit(new PanelSlider.AnimateEvent('animate', -curPosX / panelWidth));
+        });
     }
     ///////////////////////////////////////////////////////
     // Public
@@ -2657,15 +2771,13 @@ function PanelSlider(cfg) {
     /**
      * Animates to position and updates panel index.
      * The animation could be redirected or aborted,
-     * so the result index may not be what was
-     * requested or the promise may not resolve.
+     * so the resulting index may not be what was
+     * requested. Or the promise may not resolve.
      */
     function setPanel(panelId, duration = cfg.slideDuration) {
         return panelId === curPanel
             ? Promise.resolve(panelId)
-            : new Promise(r => {
-                animateTo(panelId, duration, r);
-            });
+            : animateTo(panelId, duration);
     }
     /** Sets the current panel index immediately, no animation */
     function setPanelImmediate(panelId) {
@@ -2793,7 +2905,7 @@ function PanelSlider(cfg) {
 })(PanelSlider || (PanelSlider = {}));
 exports.default = PanelSlider;
 
-},{"./Dragger":12,"./Panel":13,"./array":15,"./gesture":16,"./transform":19}],18:[function(require,module,exports){
+},{"./Dragger":13,"./Panel":14,"./array":16,"./gesture":17,"./transform":20}],19:[function(require,module,exports){
 "use strict";
 // Math utils
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2808,7 +2920,7 @@ function pmod(n, m) {
 }
 exports.pmod = pmod;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 // Determine style names (if prefix required)
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2854,4 +2966,4 @@ function setPos3d(el, x, y = 0, z = 0) {
 }
 exports.setPos3d = setPos3d;
 
-},{}]},{},[5]);
+},{}]},{},[6]);

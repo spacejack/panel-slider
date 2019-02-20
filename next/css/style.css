@@ -63,6 +63,14 @@ button.btn-pg {
 	height: 2em;
 }
 
+button.btn-cfg {
+	padding: 0.25em 0.5em;
+}
+
+table.cfg tr td {
+	padding: 0.375em 0;
+}
+
 .container {
 	position: relative;
 	width: 100%;
@@ -79,6 +87,15 @@ button.btn-pg {
 
 .center {
 	text-align: center;
+}
+
+/* For linebreaks without adding br tags */
+.pbr {
+	white-space: pre-line;
+}
+
+.small {
+	font-size: 0.875em;
 }
 
 .intro {
@@ -121,9 +138,14 @@ button.btn-pg {
 			-webkit-user-select: none;
 			-ms-user-select: none; }
 
-/* For linebreaks without adding br tags */
-.pbr {
-	white-space: pre-line;
+.configuration {
+	position: absolute;
+	top: 0.5em;
+	right: 0.5em;
+	display: inline-block;
+	padding: 0 1em 1em 1em;
+	background: #EEE;
+	border: #AAA 1px solid;
 }
 
 .stats {
