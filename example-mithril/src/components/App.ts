@@ -136,7 +136,9 @@ export default function App(): m.Component {
 		)
 		// User clicked a nav button for this panel ID.
 		// Fetch content immediately if it's not already available...
-		content.get(pid)
+		for (let i = pid; i < pid + numVisiblePanels && i < NUM_PANELS; ++i) {
+			content.get(i)
+		}
 		// Send the PanelSlider there
 		slider.setPanel(pid, duration).then(panelId)
 	}

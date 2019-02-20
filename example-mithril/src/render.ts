@@ -22,7 +22,7 @@ export function renderPanelContent (dom: HTMLElement, pid: number, texts: string
 		),
 		sz === '3'
 			? texts.map(text => m('p', text))
-			: texts[0].substr(0, 2 * (10 + pid % 10)).trim()
+			: texts[0].substr(0, 4 * (10 + pid % 10)).trim()
 	))
 }
 
