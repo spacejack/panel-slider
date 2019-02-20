@@ -16,6 +16,18 @@ export interface Attrs {
 
 const Nav: m.Component<Attrs> = {
 	view: ({attrs}) => m('nav',
+		// Options button
+		m('.group',
+			m('button.btn-pg',
+				{
+					type: 'button',
+					onclick: () => {
+						attrs.onNav({type: 'config', id: 0})
+					}
+				},
+				'⚙' //'☰'
+			)
+		),
 		// Skip buttons
 		m('.group.mq-md',
 			m('button.btn-pg.mq-lp',
@@ -66,18 +78,6 @@ const Nav: m.Component<Attrs> = {
 				},
 				item
 			))
-		),
-
-		m('.group',
-			m('button.btn-pg',
-				{
-					type: 'button',
-					onclick: () => {
-						attrs.onNav({type: 'config', id: 0})
-					}
-				},
-				'⚙' //'☰'
-			)
 		)
 	)
 }

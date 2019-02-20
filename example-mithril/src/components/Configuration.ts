@@ -31,7 +31,7 @@ export default function Configuration(): m.Component<Attrs> {
 		},
 		view: ({attrs: {config: c, onChange, onClose}}) => m('.configuration',
 			m('h3', 'Settings'),
-			m('form',
+			m('form.small',
 				{
 					onsubmit: (e: Event) => {
 						e.preventDefault()
@@ -122,10 +122,9 @@ export default function Configuration(): m.Component<Attrs> {
 						)
 					),
 					m('tr',
-						m('td', {colspan: 2, style: 'text-align: center'},
+						m('td', {colspan: 2, style: 'text-align: center; padding-top: 0.75em'},
 							m('button.btn-cfg', {type: 'button', onclick: onClose}, 'Cancel'),
-							' ',
-							m('button.btn-cfg', {type: 'submit'}, 'Update')
+							m('button.btn-cfg', {type: 'submit', style: 'margin-left: 1em'}, 'Apply')
 						)
 					)
 				)

@@ -176,7 +176,7 @@ export default function App(): m.Component {
 				items: NAV_ITEMS,
 				onNav: onNavChange
 			}),
-			configOpen && m(Configuration, {
+			configOpen && m('.configuration-bg', m(Configuration, {
 				config: userConfig,
 				onChange: (c: Config) => {
 					console.log('Updating settings to:', c)
@@ -188,7 +188,7 @@ export default function App(): m.Component {
 				onClose: () => {
 					configOpen = false
 				}
-			})
+			}))
 		)
 	}
 }
