@@ -1,14 +1,15 @@
 import m from 'mithril'
 import stream from 'mithril/stream'
-import {range} from '../../src/array'
-import {clamp} from '../../src/math'
-import PanelSlider from '../../src'
-import * as content from './content'
+import {range} from '../../../src/array'
+import {clamp} from '../../../src/math'
+import PanelSlider from '../../../src'
+import * as content from '../content'
 import Nav, {NavEvent} from './Nav'
+import Configuration, {Config} from './Configuration'
 import Stats from './Stats'
 import {
 	renderIntro, renderOutro, renderPanelContent, preRenderPanelContent
-} from './render'
+} from '../render'
 
 const NUM_PANELS = 101
 const MIN_PANEL_WIDTH = 360
@@ -20,11 +21,17 @@ const NAV_ITEMS = range(0, NUM_PANELS, 10).map(i => String(i))
  * Stateful component that manages a PanelSlider instance.
  */
 export default function App(): m.Component {
-	let slider: PanelSlider
-	let numVisiblePanels = 1
-	let dom: HTMLElement
 	const panelId = stream(0)
 	const panelPosition = stream(0)
+	let slider: PanelSlider
+	let dom: HTMLElement
+	let numVisiblePanels = 1
+	let configOpen = false
+	let userConfig: Config = {
+		slideDuration: SLIDE_DURATION,
+		maxSwipePanels: undefined,
+		contentSize: '3'
+	}
 
 	/**
 	 * (Re)Create & configure a PanelSlider instance
@@ -40,8 +47,10 @@ export default function App(): m.Component {
 			totalPanels: NUM_PANELS,  // # of total panels
 			visiblePanels, // # of panels that fit on screen
 			initialPanel,
-			maxSwipePanels: visiblePanels === 1 ? 1 : 4 * visiblePanels,
-			slideDuration: SLIDE_DURATION,
+			maxSwipePanels: userConfig.maxSwipePanels != null
+				? userConfig.maxSwipePanels
+				: visiblePanels === 1 ? 1 : 4 * visiblePanels,
+			slideDuration: userConfig.slideDuration,
 			panelClassName: 'panel',
 			dragThreshold: 1,
 			// Callback that gets invoked when the PanelSlider needs
@@ -103,6 +112,10 @@ export default function App(): m.Component {
 
 	/** Handle nav page button click */
 	function onNavChange (e: NavEvent) {
+		if (e.type === 'config') {
+			configOpen = !configOpen
+			return
+		}
 		const pid0 = slider.getPanel()
 		let pid = pid0
 		if (e.type === 'goto') {
@@ -159,6 +172,18 @@ export default function App(): m.Component {
 			m(Nav, {
 				items: NAV_ITEMS,
 				onNav: onNavChange
+			}),
+			configOpen && m(Configuration, {
+				config: userConfig,
+				onChange: (c: Config) => {
+					console.log('Updating settings to:', c)
+					Object.assign(userConfig, c)
+					configOpen = false
+					initPanelSlider(numVisiblePanels)
+				},
+				onClose: () => {
+					configOpen = false
+				}
 			})
 		)
 	}

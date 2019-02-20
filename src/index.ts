@@ -204,10 +204,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 				console.warn('Could not find an available panel for id:', i)
 				continue
 			}
-			// Need to render this
-			if (!fast) {
-				console.log(`updating panel: ${i}`)
-			}
+			// Panel has old content so must render
 			panel.index = i
 			panel.state = cfg.renderContent(
 				new PanelSlider.RenderEvent(

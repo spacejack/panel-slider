@@ -3,7 +3,7 @@ import m from 'mithril'
 export class NavEvent {
 	type: string
 	id: number
-	constructor (type: 'goto' | 'skip', i: number) {
+	constructor (type: 'goto' | 'skip' | 'config', i: number) {
 		this.type = type
 		this.id = i
 	}
@@ -66,6 +66,18 @@ const Nav: m.Component<Attrs> = {
 				},
 				item
 			))
+		),
+
+		m('.group',
+			m('button.btn-pg',
+				{
+					type: 'button',
+					onclick: () => {
+						attrs.onNav({type: 'config', id: 0})
+					}
+				},
+				'⚙' //'☰'
+			)
 		)
 	)
 }

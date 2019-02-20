@@ -19,7 +19,7 @@ export function peek (panelId: number): string[] | Promise<string[]> | undefined
 export function get (id: number): string[] | Promise<string[]> {
 	if (!cache.has(id)) {
 		// Entry doesn't exist - start with a promise
-		console.log('fetching: ' + id)
+		console.log('fetching panel: ' + id)
 		// Use BaconIpsum.com to generate some content for each panel
 		cache.set(id, fetch(
 			'https://baconipsum.com/api/?type=meat-and-filler'

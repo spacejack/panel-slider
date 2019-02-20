@@ -37,7 +37,7 @@ export function renderIntro (dom: HTMLElement) {
 	m.render(dom, m('.intro',
 		m('h2.center', 'Panel-Slider'),
 		m('.center.lg-lt', '➔'),
-		m('p.center', 'Swipe left or right to navigate.'),
+		m('p', 'Swipe left or right to navigate. Click the ⚙ button to adjust settings.'),
 		m('p',
 			'Panel content is loaded asynchronously. '
 			+ 'On a desktop you can resize the window width to change the number of panels. '

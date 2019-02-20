@@ -1,4 +1,4 @@
 import m from 'mithril'
-import App from './App'
+import App from './components/App'
 
 m.mount(document.body, App)
