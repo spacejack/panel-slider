@@ -9,7 +9,7 @@ export const contentSize = stream('3')
 
 const picsumOffset = Math.floor(Math.random() * 1000)
 
-/** Render panel content. Returns DOM tree. */
+/** Render panel content. */
 export function renderPanelContent (dom: HTMLElement, pid: number, texts: string[]) {
 	const sz = contentSize()
 	m.render(dom, m('div',
