@@ -140,7 +140,9 @@ function App() {
         const duration = SLIDE_DURATION * Math.pow(Math.max(Math.abs(pid - pid0), 1), 0.25);
         // User clicked a nav button for this panel ID.
         // Fetch content immediately if it's not already available...
-        content.get(pid);
+        for (let i = pid; i < pid + numVisiblePanels && i < NUM_PANELS; ++i) {
+            content.get(i);
+        }
         // Send the PanelSlider there
         slider.setPanel(pid, duration).then(panelId);
     }
@@ -398,7 +400,7 @@ const stream_1 = __importDefault(require("mithril/stream"));
 exports.contentSize = stream_1.default('3');
 // Panel content rendering
 const picsumOffset = Math.floor(Math.random() * 1000);
-/** Render panel content. Returns DOM tree. */
+/** Render panel content. */
 function renderPanelContent(dom, pid, texts) {
     const sz = exports.contentSize();
     mithril_1.default.render(dom, mithril_1.default('div', mithril_1.default('h2', `${pid}. ${texts[1].substr(0, 10 + pid % 10).trim()}`), sz >= '2' && mithril_1.default('p', mithril_1.default('img', {
@@ -406,7 +408,7 @@ function renderPanelContent(dom, pid, texts) {
         src: `https://picsum.photos/300/200?image=${picsumOffset + pid}`
     })), sz === '3'
         ? texts.map(text => mithril_1.default('p', text))
-        : texts[0].substr(0, 2 * (10 + pid % 10)).trim()));
+        : texts[0].substr(0, 4 * (10 + pid % 10)).trim()));
 }
 exports.renderPanelContent = renderPanelContent;
 /** Pre-render (fast) */
