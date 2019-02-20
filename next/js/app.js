@@ -174,7 +174,7 @@ function App() {
         }), mithril_1.default(Nav_1.default, {
             items: NAV_ITEMS,
             onNav: onNavChange
-        }), configOpen && mithril_1.default(Configuration_1.default, {
+        }), configOpen && mithril_1.default('.configuration-bg', mithril_1.default(Configuration_1.default, {
             config: userConfig,
             onChange: (c) => {
                 console.log('Updating settings to:', c);
@@ -186,7 +186,7 @@ function App() {
             onClose: () => {
                 configOpen = false;
             }
-        }))
+        })))
     };
 }
 exports.default = App;
@@ -211,7 +211,7 @@ function Configuration() {
                 i.focus();
             }, 100);
         },
-        view: ({ attrs: { config: c, onChange, onClose } }) => mithril_1.default('.configuration', mithril_1.default('h3', 'Settings'), mithril_1.default('form', {
+        view: ({ attrs: { config: c, onChange, onClose } }) => mithril_1.default('.configuration', mithril_1.default('h3', 'Settings'), mithril_1.default('form.small', {
             onsubmit: (e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
@@ -259,7 +259,7 @@ function Configuration() {
             //style: 'width: 4em',
             name: 'contentSize',
             value: c.contentSize
-        }, Object.keys(SIZES).map(s => mithril_1.default('option', { value: s }, SIZES[s]))))), mithril_1.default('tr', mithril_1.default('td', { colspan: 2, style: 'text-align: center' }, mithril_1.default('button.btn-cfg', { type: 'button', onclick: onClose }, 'Cancel'), ' ', mithril_1.default('button.btn-cfg', { type: 'submit' }, 'Update'))))))
+        }, Object.keys(SIZES).map(s => mithril_1.default('option', { value: s }, SIZES[s]))))), mithril_1.default('tr', mithril_1.default('td', { colspan: 2, style: 'text-align: center; padding-top: 0.75em' }, mithril_1.default('button.btn-cfg', { type: 'button', onclick: onClose }, 'Cancel'), mithril_1.default('button.btn-cfg', { type: 'submit', style: 'margin-left: 1em' }, 'Apply'))))))
     };
 }
 exports.default = Configuration;
@@ -280,6 +280,14 @@ class NavEvent {
 exports.NavEvent = NavEvent;
 const Nav = {
     view: ({ attrs }) => mithril_1.default('nav', 
+    // Options button
+    mithril_1.default('.group', mithril_1.default('button.btn-pg', {
+        type: 'button',
+        onclick: () => {
+            attrs.onNav({ type: 'config', id: 0 });
+        }
+    }, '⚙' //'☰'
+    )), 
     // Skip buttons
     mithril_1.default('.group.mq-md', mithril_1.default('button.btn-pg.mq-lp', {
         type: 'button',
@@ -308,13 +316,7 @@ const Nav = {
         onclick: () => {
             attrs.onNav({ type: 'goto', id: i });
         }
-    }, item))), mithril_1.default('.group', mithril_1.default('button.btn-pg', {
-        type: 'button',
-        onclick: () => {
-            attrs.onNav({ type: 'config', id: 0 });
-        }
-    }, '⚙' //'☰'
-    )))
+    }, item))))
 };
 exports.default = Nav;
 
