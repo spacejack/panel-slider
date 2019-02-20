@@ -1,13 +1,13 @@
 import m from 'mithril'
-
-export type ContentSize = '1' | '2' | '3'
+import {ContentSize} from '../render'
 
 const SIZES: Record<ContentSize, string> = {'1': 'small', '2': 'medium', '3': 'large'}
 
 export interface Config {
-	maxSwipePanels?: number
-	contentSize: ContentSize
 	slideDuration: number
+	swipeForce: number
+	contentSize: ContentSize
+	maxSwipePanels?: number
 }
 
 export interface Attrs {
@@ -37,11 +37,12 @@ export default function Configuration(): m.Component<Attrs> {
 						e.preventDefault()
 						const form = e.currentTarget as HTMLFormElement
 						onChange({
+							slideDuration: Number(form.slideDuration.value),
+							swipeForce: Number(form.swipeForce.value),
+							contentSize: form.contentSize.value as ContentSize,
 							maxSwipePanels: form.autoSwipePanels.checked
 								? undefined
 								: Number(form.maxSwipePanels.value) || 1,
-							contentSize: form.contentSize.value as ContentSize,
-							slideDuration: Number(form.slideDuration.value)
 						})
 					}
 				},
@@ -56,6 +57,19 @@ export default function Configuration(): m.Component<Attrs> {
 								required: true,
 								name: 'slideDuration',
 								value: c.slideDuration
+							})
+						)
+					),
+					m('tr',
+						m('td', 'Swipe Force Multiplier:'),
+						m('td',
+							m('input', {
+								type: 'number',
+								min: 0.1, max: 10, step: 0.01,
+								style: 'width: 4em',
+								required: true,
+								name: 'swipeForce',
+								value: c.swipeForce
 							})
 						)
 					),

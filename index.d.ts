@@ -170,6 +170,8 @@ declare namespace PanelSlider {
         maxSwipePanels?: number;
         /** Duration of slide animation on release (default 500ms) */
         slideDuration?: number;
+        /** Force multiplier for swipe (default 1.0) */
+        swipeForce?: number;
         /** Horizontal distance threshold to initiate drag (default 12px) */
         dragThreshold?: number;
         /** Minimum required horizontal:vertical ratio to initiate drag (default 1.5) */

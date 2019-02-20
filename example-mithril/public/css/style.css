@@ -89,6 +89,15 @@ table.cfg tr td {
 	text-align: center;
 }
 
+/* For linebreaks without adding br tags */
+.pbr {
+	white-space: pre-line;
+}
+
+.small {
+	font-size: 0.875em;
+}
+
 .intro {
 	padding: 0 2em;
 	box-sizing: border-box;
@@ -128,11 +137,6 @@ table.cfg tr td {
 			user-select: none;
 			-webkit-user-select: none;
 			-ms-user-select: none; }
-
-/* For linebreaks without adding br tags */
-.pbr {
-	white-space: pre-line;
-}
 
 .configuration {
 	position: absolute;

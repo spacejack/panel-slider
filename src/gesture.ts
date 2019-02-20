@@ -22,22 +22,23 @@ export interface SwipeResult {
 	duration: number
 }
 
+/** Minimum duration of animation */
+const MIN_DUR_MS = 17
+/** Max throw velocity */
+const MAX_VEL = 25000
+/* max distance we can travel */
+//const MAX_DIST = maxSwipePanels
+
 /**
  * Compute "throw" from swipe
  */
 export function swipe ({
 	panelId, x, xv, panelWidth, maxSwipePanels, totalPanels, unitDuration
 }: SwipeOptions): SwipeResult {
-	/** Minimum duration of animation */
-	const MIN_DUR_MS = 17
-	/** Max throw velocity */
-	const MAX_VEL = 10000
-	/* max distance we can travel */
-	//const MAX_DIST = maxSwipePanels
 	/** swipe velocity in px/s clamped to sane range */
 	const xvel = clamp(xv, -MAX_VEL, MAX_VEL)
 	/** Destination position */
-	const destX = x + xvel * 0.5
+	const destX = x + xvel
 	/** Current index panel (where it is currently dragged to, not its resting position) */
 	const p0 = Math.floor(-x / panelWidth)
 	/** Destination panel index */

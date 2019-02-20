@@ -1,6 +1,6 @@
 {
   "name": "panel-slider",
-  "version": "1.0.0",
+  "version": "0.3.0",
   "description": "Panel Slider",
   "author": "spacejack",
   "license": "MIT",
@@ -28,6 +28,6 @@
     "tslint": "^5.12.1",
     "typescript": "^3.3.3",
     "uglify-js": "^3.4.9",
-    "watchify": "^3.11.0"
+    "watchify": "^3.11.1"
   }
 }

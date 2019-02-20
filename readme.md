@@ -1,6 +1,6 @@
 # Panel-Slider
 
-### [Live demo](https://spacejack.github.io/panel-slider/)
+### [Live demo](https://spacejack.github.io/panel-slider/next/)
 
 Panel-Slider is an "infinite" horizontally scrolling widget that smoothly transitions between equal-sized panels. It can use swipe gestures on touch devices and respond to specific manual navigation inputs.
 

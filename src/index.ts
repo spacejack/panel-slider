@@ -79,6 +79,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	cfg.initialPanel = cfg.initialPanel || 0
 	cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels
 	cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION
+	cfg.swipeForce = cfg.swipeForce || 1
 	cfg.panelClassName = cfg.panelClassName || ''
 	cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO
 	cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD
@@ -293,7 +294,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 	function swipeAnim (xVelocity: number) {
 		const result = gesture.swipe({
 			panelId: curPanel,
-			x: curPosX, xv: xVelocity,
+			x: curPosX, xv: xVelocity * cfg.swipeForce!,
 			maxSwipePanels: cfg.maxSwipePanels!,
 			panelWidth,
 			unitDuration: cfg.slideDuration!,
@@ -595,6 +596,8 @@ namespace PanelSlider {
 		maxSwipePanels?: number
 		/** Duration of slide animation on release (default 500ms) */
 		slideDuration?: number
+		/** Force multiplier for swipe (default 1.0) */
+		swipeForce?: number
 		/** Horizontal distance threshold to initiate drag (default 12px) */
 		dragThreshold?: number
 		/** Minimum required horizontal:vertical ratio to initiate drag (default 1.5) */

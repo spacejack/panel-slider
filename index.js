@@ -38,6 +38,7 @@ function PanelSlider(cfg) {
     cfg.initialPanel = cfg.initialPanel || 0;
     cfg.maxSwipePanels = cfg.maxSwipePanels || cfg.visiblePanels;
     cfg.slideDuration = cfg.slideDuration || PanelSlider.DEFAULT_SLIDE_DURATION;
+    cfg.swipeForce = cfg.swipeForce || 1;
     cfg.panelClassName = cfg.panelClassName || '';
     cfg.dragRatio = cfg.dragRatio || PanelSlider.DEFAULT_DRAG_RATIO;
     cfg.dragThreshold = cfg.dragThreshold || PanelSlider.DEFAULT_DRAG_THRESHOLD;
@@ -154,10 +155,7 @@ function PanelSlider(cfg) {
                 console.warn('Could not find an available panel for id:', i);
                 continue;
             }
-            // Need to render this
-            if (!fast) {
-                console.log("updating panel: " + i);
-            }
+            // Panel has old content so must render
             panel.index = i;
             panel.state = cfg.renderContent(new PanelSlider.RenderEvent(fast ? 'preview' : 'render', panel.dom, panel.index));
             transform_1.setPos3d(panel.dom, curPosX - i * panelWidth);
@@ -232,7 +230,7 @@ function PanelSlider(cfg) {
     function swipeAnim(xVelocity) {
         var result = gesture.swipe({
             panelId: curPanel,
-            x: curPosX, xv: xVelocity,
+            x: curPosX, xv: xVelocity * cfg.swipeForce,
             maxSwipePanels: cfg.maxSwipePanels,
             panelWidth: panelWidth,
             unitDuration: cfg.slideDuration,

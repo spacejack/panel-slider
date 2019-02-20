@@ -1,21 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var math_1 = require("./math");
+/** Minimum duration of animation */
+var MIN_DUR_MS = 17;
+/** Max throw velocity */
+var MAX_VEL = 25000;
+/* max distance we can travel */
+//const MAX_DIST = maxSwipePanels
 /**
  * Compute "throw" from swipe
  */
 function swipe(_a) {
     var panelId = _a.panelId, x = _a.x, xv = _a.xv, panelWidth = _a.panelWidth, maxSwipePanels = _a.maxSwipePanels, totalPanels = _a.totalPanels, unitDuration = _a.unitDuration;
-    /** Minimum duration of animation */
-    var MIN_DUR_MS = 17;
-    /** Max throw velocity */
-    var MAX_VEL = 10000;
-    /* max distance we can travel */
-    //const MAX_DIST = maxSwipePanels
     /** swipe velocity in px/s clamped to sane range */
     var xvel = math_1.clamp(xv, -MAX_VEL, MAX_VEL);
     /** Destination position */
-    var destX = x + xvel * 0.5;
+    var destX = x + xvel;
     /** Current index panel (where it is currently dragged to, not its resting position) */
     var p0 = Math.floor(-x / panelWidth);
     /** Destination panel index */

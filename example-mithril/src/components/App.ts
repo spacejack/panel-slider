@@ -8,7 +8,9 @@ import Nav, {NavEvent} from './Nav'
 import Configuration, {Config} from './Configuration'
 import Stats from './Stats'
 import {
-	renderIntro, renderOutro, renderPanelContent, preRenderPanelContent
+	renderIntro, renderOutro,
+	renderPanelContent, preRenderPanelContent,
+	contentSize
 } from '../render'
 
 const NUM_PANELS = 101
@@ -29,8 +31,9 @@ export default function App(): m.Component {
 	let configOpen = false
 	let userConfig: Config = {
 		slideDuration: SLIDE_DURATION,
-		maxSwipePanels: undefined,
-		contentSize: '3'
+		swipeForce: 1,
+		contentSize: '3',
+		maxSwipePanels: undefined
 	}
 
 	/**
@@ -47,6 +50,7 @@ export default function App(): m.Component {
 			totalPanels: NUM_PANELS,  // # of total panels
 			visiblePanels, // # of panels that fit on screen
 			initialPanel,
+			swipeForce: userConfig.swipeForce,
 			maxSwipePanels: userConfig.maxSwipePanels != null
 				? userConfig.maxSwipePanels
 				: visiblePanels === 1 ? 1 : 4 * visiblePanels,
@@ -71,7 +75,6 @@ export default function App(): m.Component {
 					// Content is available now - render it:
 					renderPanelContent(e.dom, e.panelId, c)
 					// Indicate did render
-					console.log('rendered panel:', e.panelId)
 					return PanelSlider.RENDERED
 				} else if (e.type === 'render') {
 					// Content not available yet - fetch
@@ -178,6 +181,7 @@ export default function App(): m.Component {
 				onChange: (c: Config) => {
 					console.log('Updating settings to:', c)
 					Object.assign(userConfig, c)
+					contentSize(userConfig.contentSize)
 					configOpen = false
 					initPanelSlider(numVisiblePanels)
 				},
