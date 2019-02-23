@@ -248,7 +248,7 @@ function PanelSlider (cfg: PanelSlider.Options): PanelSlider {
 		devices: cfg.devices,
 		on: {
 			dragstart (e) {
-				emit(new PanelSlider.DragEvent('drag', e.x, 0))
+				emit(new PanelSlider.DragEvent('dragstart', e.x, 0))
 			},
 			dragmove(e) {
 				const ox = -curPanel * panelWidth
